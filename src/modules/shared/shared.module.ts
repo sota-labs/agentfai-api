@@ -5,7 +5,6 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { CacheModule } from '@nestjs/cache-manager';
 import { RedisModule } from 'nestjs-redis';
 import config from 'config';
-import { DextradeModule } from './dextrade/dextrade.module';
 
 @Module({
   imports: [
@@ -42,9 +41,8 @@ import { DextradeModule } from './dextrade/dextrade.module';
       }),
       inject: [ConfigService],
     }),
-    DextradeModule,
   ],
   providers: [],
-  exports: [ConfigModule, JwtModule, MongooseModule, CacheModule, DextradeModule],
+  exports: [ConfigModule, JwtModule, MongooseModule, CacheModule],
 })
 export class SharedModule {}

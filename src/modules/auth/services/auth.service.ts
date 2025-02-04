@@ -6,7 +6,7 @@ import { LoginReqDto } from '../dtos/req.dto';
 import { LoginResDto } from '../dtos/res.dto';
 import { LoggerUtils } from 'common/utils/logger.utils';
 import { TAccessTokenPayload, TLoginResponse } from 'common/types/auth.type';
-import { User } from 'modules/user/user.schema';
+import { User } from 'modules/user/schemas/user.schema';
 import { UserService } from 'modules/user/user.service';
 
 @Injectable()

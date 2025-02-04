@@ -11,17 +11,10 @@ const AppConfig = registerAs(appRegToken, () => ({
   jwt: {
     secret: process.env.JWT_ACCESS_SECRET_KEY || 'secret',
   },
-  network,
   dextradeUrl: process.env.DEXTRADE_URL || 'https://api.dextrade.bot/api/v1',
-  websiteUrl: process.env.WEBSITE_URL,
-  maxActivePairAlertSettings: process.env.MAX_ACTIVE_PAIR_ALERT_SETTINGS
-    ? Number(process.env.MAX_ACTIVE_PAIR_ALERT_SETTINGS)
-    : 10,
-  maxActiveWalletAlertSettings: process.env.MAX_ACTIVE_WALLET_ALERT_SETTINGS
-    ? Number(process.env.MAX_ACTIVE_WALLET_ALERT_SETTINGS)
-    : 5,
-  priceAlertCooldown: process.env.PRICE_ALERT_COOLDOWN ? Number(process.env.PRICE_ALERT_COOLDOWN) : 60,
-  walletAlertCooldown: process.env.WALLET_ALERT_COOLDOWN ? Number(process.env.WALLET_ALERT_COOLDOWN) : 30,
+  crypto: {
+    secretKey: process.env.CRYPTO_SECRET_KEY || 'VERvizMry2DfC4QZiICzatwFwftJgvYC',
+  },
 }));
 
 if (!Object.values(ENetwork).includes(network as ENetwork)) {

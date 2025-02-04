@@ -7,9 +7,11 @@ import { SharedModule } from 'modules/shared/shared.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from 'modules/auth/auth.module';
+import { AgentModule } from 'modules/agent/agent.module';
+import { UserModule } from 'modules/user/user.module';
 
 @Module({
-  imports: [SharedModule, AuthModule],
+  imports: [SharedModule, AuthModule, AgentModule, UserModule],
   controllers: [AppController],
   providers: [
     AppService,
