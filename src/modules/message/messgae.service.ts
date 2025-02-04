@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { plainToClass } from 'class-transformer';
 import { CreateMessageDto } from 'modules/message/dto/create-message.dto';
-import { MessageResDto } from 'modules/message/dto/res.dto';
+import { MessageThreadResDto } from 'modules/message/dto/res.dto';
 import { Message } from 'modules/message/messgae.schema';
 import { Thread } from 'modules/thread/thread.schema';
 import { ThreadService } from 'modules/thread/thread.service';
@@ -39,6 +39,6 @@ export class MessageService {
       ],
       { session },
     );
-    return plainToClass(MessageResDto, message);
+    return plainToClass(MessageThreadResDto, message);
   }
 }
