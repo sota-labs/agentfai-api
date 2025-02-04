@@ -1,0 +1,16 @@
+{
+    "apps": [
+        {
+            "name": "prod.agentfai.api",
+            "script": "node",
+            "args": "dist/starters/api.js",
+            "max_memory_restart": "1024M",
+            "log_date_format": "YYYY-MM-DD hh:mm:ss",
+            "namespace": "agentfai",
+            "env": {
+                "NODE_ENV": "production",
+                "API_PORT": 4011
+            }
+        }
+    ]
+}
