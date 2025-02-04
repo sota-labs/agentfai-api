@@ -10,7 +10,9 @@ export class CreateMessageDto {
   @IsNotEmpty()
   question: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    required: false,
+  })
   @IsString()
   @IsOptional()
   threadId: string;

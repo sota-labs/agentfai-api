@@ -1,7 +1,7 @@
 import { Controller, Delete, Get, Param } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { UserId } from 'common/decorators/user-id.decorator';
-import { ThreadService } from 'modules/threads/thread.service';
+import { ThreadService } from 'modules/thread/thread.service';
 
 @ApiTags('Threads')
 @Controller('threads')

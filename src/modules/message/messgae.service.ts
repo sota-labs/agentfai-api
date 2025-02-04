@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { plainToClass } from 'class-transformer';
-import { CreateMessageDto } from 'modules/messages/dto/create-message.dto';
-import { MessageResDto } from 'modules/messages/dto/res.dto';
-import { Message } from 'modules/messages/messgae.schema';
-import { Thread } from 'modules/threads/thread.schema';
-import { ThreadService } from 'modules/threads/thread.service';
+import { CreateMessageDto } from 'modules/message/dto/create-message.dto';
+import { MessageResDto } from 'modules/message/dto/res.dto';
+import { Message } from 'modules/message/messgae.schema';
+import { Thread } from 'modules/thread/thread.schema';
+import { ThreadService } from 'modules/thread/thread.service';
 import { ClientSession, Model } from 'mongoose';
 
 @Injectable()

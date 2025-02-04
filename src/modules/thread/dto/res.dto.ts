@@ -1,4 +1,4 @@
-import { Message } from 'modules/messages/messgae.schema';
+import { Message } from 'modules/message/messgae.schema';
 import { Exclude, Expose } from 'class-transformer';
 
 @Exclude()

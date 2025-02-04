@@ -7,8 +7,8 @@ import { SharedModule } from 'modules/shared/shared.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from 'modules/auth/auth.module';
-import { ThreadModule } from 'modules/threads/thread.module';
-import { MessageModule } from 'modules/messages/messgae.module';
+import { ThreadModule } from 'modules/thread/thread.module';
+import { MessageModule } from 'modules/message/messgae.module';
 
 @Module({
   imports: [SharedModule, AuthModule, ThreadModule, MessageModule],

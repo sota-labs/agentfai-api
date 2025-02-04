@@ -5,10 +5,10 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { CacheModule } from '@nestjs/cache-manager';
 import { RedisModule } from 'nestjs-redis';
 import config from 'config';
-import { Thread } from 'modules/threads/thread.schema';
-import { ThreadSchema } from 'modules/threads/thread.schema';
-import { MessageSchema } from 'modules/messages/messgae.schema';
-import { Message } from 'modules/messages/messgae.schema';
+import { Thread } from 'modules/thread/thread.schema';
+import { ThreadSchema } from 'modules/thread/thread.schema';
+import { MessageSchema } from 'modules/message/messgae.schema';
+import { Message } from 'modules/message/messgae.schema';
 
 @Module({
   imports: [

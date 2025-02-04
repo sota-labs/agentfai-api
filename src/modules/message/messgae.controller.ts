@@ -1,7 +1,7 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { MessageService } from 'modules/messages/messgae.service';
-import { CreateMessageDto } from 'modules/messages/dto/create-message.dto';
+import { MessageService } from 'modules/message/messgae.service';
+import { CreateMessageDto } from 'modules/message/dto/create-message.dto';
 import { UserId } from 'common/decorators/user-id.decorator';
 import { MongoUtils } from 'common/utils/mongo.utils';
 import { InjectConnection } from '@nestjs/mongoose';
