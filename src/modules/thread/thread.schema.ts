@@ -16,5 +16,4 @@ export class Thread {
 
 export type ThreadDocument = HydratedDocument<Thread>;
 export const ThreadSchema = SchemaFactory.createForClass(Thread);
-ThreadSchema.index({ agentId: 1 });
 ThreadSchema.index({ userId: 1 });
