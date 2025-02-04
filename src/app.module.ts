@@ -9,9 +9,11 @@ import { AppService } from './app.service';
 import { AuthModule } from 'modules/auth/auth.module';
 import { ThreadModule } from 'modules/thread/thread.module';
 import { MessageModule } from 'modules/message/messgae.module';
+import { AgentModule } from 'modules/agent/agent.module';
+import { UserModule } from 'modules/user/user.module';
 
 @Module({
-  imports: [SharedModule, AuthModule, ThreadModule, MessageModule],
+  imports: [SharedModule, AuthModule, ThreadModule, MessageModule, AgentModule, UserModule],
   controllers: [AppController],
   providers: [
     AppService,
