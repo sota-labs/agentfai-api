@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { jwtToAddress } from '@mysten/sui/zklogin';
 import { ClientSession, Model } from 'mongoose';
 import { customAlphabet } from 'nanoid/non-secure';
-import { User, UserDocument } from './user.schema';
+import { User, UserDocument } from 'modules/user/schemas/user.schema';
 import { generateSalt } from 'common/utils/zklogin.utils';
 
 const customNanoId = customAlphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789abcdefghijklmnopqrstuvwxyz', 8);

@@ -5,7 +5,6 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { CacheModule } from '@nestjs/cache-manager';
 import { RedisModule } from 'nestjs-redis';
 import config from 'config';
-import { DextradeModule } from './dextrade/dextrade.module';
 import { Thread } from 'modules/threads/thread.schema';
 import { ThreadSchema } from 'modules/threads/thread.schema';
 import { MessageSchema } from 'modules/messages/messgae.schema';
@@ -46,13 +45,12 @@ import { Message } from 'modules/messages/messgae.schema';
       }),
       inject: [ConfigService],
     }),
-    DextradeModule,
     MongooseModule.forFeature([
       { name: Thread.name, schema: ThreadSchema },
       { name: Message.name, schema: MessageSchema },
     ]),
   ],
   providers: [],
-  exports: [ConfigModule, JwtModule, MongooseModule, CacheModule, DextradeModule],
+  exports: [ConfigModule, JwtModule, MongooseModule, CacheModule],
 })
 export class SharedModule {}
