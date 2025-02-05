@@ -5,6 +5,10 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { CacheModule } from '@nestjs/cache-manager';
 import { RedisModule } from 'nestjs-redis';
 import config from 'config';
+import { Thread } from 'modules/thread/thread.schema';
+import { ThreadSchema } from 'modules/thread/thread.schema';
+import { MessageSchema } from 'modules/message/messgae.schema';
+import { Message } from 'modules/message/messgae.schema';
 
 @Module({
   imports: [
@@ -41,6 +45,10 @@ import config from 'config';
       }),
       inject: [ConfigService],
     }),
+    MongooseModule.forFeature([
+      { name: Thread.name, schema: ThreadSchema },
+      { name: Message.name, schema: MessageSchema },
+    ]),
   ],
   providers: [],
   exports: [ConfigModule, JwtModule, MongooseModule, CacheModule],
