@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { ClientSession, PaginateModel, PaginateResult } from 'mongoose';
-import { Message, MessageDocument } from 'modules/message/messgae.schema';
+import { Message, MessageDocument } from 'modules/message/message.schema';
 import { Thread, ThreadDocument } from 'modules/thread/thread.schema';
 import { IPagination } from 'common/decorators/paginate.decorator';
 

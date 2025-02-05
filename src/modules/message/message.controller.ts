@@ -1,13 +1,15 @@
-import { Body, Controller, Post } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Param, Post, Put, Sse } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/mongoose';
-import { Connection } from 'mongoose';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
-import { MessageService } from 'modules/message/messgae.service';
-import { CreateMessageDto } from 'modules/message/dtos/create-message.dto';
+import { Connection } from 'mongoose';
+import { Observable } from 'rxjs';
 import { UserId } from 'common/decorators/user-id.decorator';
+import { MessageResDto } from 'common/dtos/message.dto';
 import { MongoUtils } from 'common/utils/mongo.utils';
+import { CreateMessageDto } from 'modules/message/dtos/create-message.dto';
 import { MessageThreadResDto } from 'modules/message/dtos/res.dto';
+import { MessageService } from 'modules/message/message.service';
 
 @Controller({
   path: 'message',
@@ -30,5 +32,18 @@ export class MessageController {
       const message = await this.messageService.create(userId, createMessageDto, session);
       return plainToInstance(MessageThreadResDto, message);
     });
+  }
+
+  @Sse('sse/:messageId')
+  async sse(@Param('messageId') messageId: string): Promise<Observable<any>> {
+    return this.messageService.hanldeSSE(messageId);
+  }
+
+  @Put(':messageId/cancel')
+  @ApiOperation({ summary: 'Cancel a message' })
+  @ApiOkResponse({ type: MessageResDto })
+  async cancelRequest(@Param('messageId') messageId: string): Promise<MessageResDto> {
+    await this.messageService.cancelRequest(messageId);
+    return plainToInstance(MessageResDto, { message: 'Cancel message successfully' });
   }
 }
