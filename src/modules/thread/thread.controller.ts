@@ -1,7 +1,11 @@
-import { Controller, Delete, Get, Param } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags, OmitType } from '@nestjs/swagger';
+import { Controller, Delete, Get, Param, Query } from '@nestjs/common';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { plainToInstance } from 'class-transformer';
+import { ApiPaginationQuery, IPagination } from 'common/decorators/paginate.decorator';
 import { UserId } from 'common/decorators/user-id.decorator';
-import { ThreadResDto } from 'modules/thread/dto/res.dto';
+import { MessageResDto } from 'common/dtos/message.dto';
+import { PaginateMessageResDto } from 'modules/message/dtos/res.dto';
+import { PaginateThreadResDto, ThreadResDto } from 'modules/thread/dtos/res.dto';
 import { ThreadService } from 'modules/thread/thread.service';
 
 @ApiTags('Threads')
@@ -17,29 +21,38 @@ export class ThreadController {
   @ApiOperation({ summary: 'Get all threads for user' })
   @ApiOkResponse({
     description: 'List of threads retrieved successfully',
-    type: [OmitType(ThreadResDto, ['messages'])],
+    type: PaginateThreadResDto,
   })
-  getThreads(@UserId() userId: string) {
-    return this.threadService.getThreads(userId);
+  @ApiPaginationQuery()
+  async getThreads(@UserId() userId: string, @Query() paginate: IPagination): Promise<PaginateThreadResDto> {
+    const rs = await this.threadService.paginate(userId, paginate);
+    return plainToInstance(PaginateThreadResDto, rs);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a specific thread' })
   @ApiOkResponse({ type: ThreadResDto })
-  getThread(@UserId() userId: string, @Param('id') id: string) {
-    return this.threadService.getThread(userId, id);
+  async getThread(@UserId() userId: string, @Param('id') id: string): Promise<ThreadResDto> {
+    const thread = await this.threadService.getDetailsByThreadId(userId, id);
+    return plainToInstance(ThreadResDto, thread);
+  }
+
+  @Get(':id/messages')
+  @ApiOperation({ summary: 'Get messages of a specific thread' })
+  @ApiOkResponse({ type: PaginateMessageResDto })
+  async getMessages(@UserId() userId: string, @Param('id') id: string): Promise<PaginateMessageResDto> {
+    const messages = await this.threadService.getMessagesByThreadId(userId, id);
+    return plainToInstance(PaginateMessageResDto, messages);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a thread' })
   @ApiOkResponse({
     description: 'Thread :id deleted successfully',
-    schema: {
-      type: 'string',
-      example: 'Thread 66b000000000000000000000 deleted successfully',
-    },
+    type: MessageResDto,
   })
-  deleteThread(@UserId() userId: string, @Param('id') id: string) {
-    return this.threadService.deleteThread(userId, id);
+  async deleteThread(@UserId() userId: string, @Param('id') id: string): Promise<MessageResDto> {
+    await this.threadService.delete(userId, id);
+    return plainToInstance(MessageResDto, { message: 'Thread deleted successfully' });
   }
 }

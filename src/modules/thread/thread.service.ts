@@ -1,20 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { plainToClass } from 'class-transformer';
-import { MessageThreadResDto } from 'modules/message/dto/res.dto';
-import { Message } from 'modules/message/messgae.schema';
-import { ThreadResDto } from 'modules/thread/dto/res.dto';
-import { Thread } from 'modules/thread/thread.schema';
-import { ClientSession, Model } from 'mongoose';
+import { ClientSession, PaginateModel, PaginateResult } from 'mongoose';
+import { Message, MessageDocument } from 'modules/message/messgae.schema';
+import { Thread, ThreadDocument } from 'modules/thread/thread.schema';
+import { IPagination } from 'common/decorators/paginate.decorator';
 
 @Injectable()
 export class ThreadService {
   constructor(
-    @InjectModel(Thread.name) private threadModel: Model<Thread>,
-    @InjectModel(Message.name) private messageModel: Model<Message>,
+    @InjectModel(Thread.name) private threadModel: PaginateModel<ThreadDocument>,
+    @InjectModel(Message.name) private messageModel: PaginateModel<MessageDocument>,
   ) {}
 
-  async create(userId: string, name: string, session: ClientSession) {
+  async create(userId: string, name: string, session: ClientSession): Promise<ThreadDocument> {
     const [thread] = await this.threadModel.create(
       [
         {
@@ -24,26 +22,25 @@ export class ThreadService {
       ],
       { session },
     );
-    return plainToClass(ThreadResDto, thread);
+    return thread;
   }
 
-  async getThreads(userId: string) {
-    const rs = await this.threadModel.find({ userId });
-    return plainToClass(ThreadResDto, rs);
+  async paginate(userId: string, paginate: IPagination): Promise<PaginateResult<ThreadDocument>> {
+    const rs = await this.threadModel.paginate({ userId }, { ...paginate, sort: { createdAt: -1 } });
+    return rs;
   }
 
-  async getThread(userId: string, _id: string) {
-    const messages = await this.messageModel.find({ threadId: _id });
+  async getDetailsByThreadId(userId: string, _id: string): Promise<ThreadDocument> {
     const thread = await this.threadModel.findOne({ _id, userId });
-
-    return {
-      ...plainToClass(ThreadResDto, thread),
-      messages: plainToClass(MessageThreadResDto, messages),
-    };
+    return thread;
   }
 
-  async deleteThread(userId: string, _id: string): Promise<string> {
+  async getMessagesByThreadId(userId: string, _id: string): Promise<PaginateResult<MessageDocument>> {
+    const messages = await this.messageModel.paginate({ threadId: _id, userId }, { sort: { createdAt: -1 } });
+    return messages;
+  }
+
+  async delete(userId: string, _id: string): Promise<void> {
     await this.threadModel.deleteOne({ _id, userId });
-    return `Thread ${_id} deleted successfully`;
   }
 }

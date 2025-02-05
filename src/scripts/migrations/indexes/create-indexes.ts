@@ -50,6 +50,10 @@ export class CreateIndexes {
   private async createMessageIndexes() {
     const indexes = [
       {
+        fields: { userId: 1 },
+        options: { background: true },
+      },
+      {
         fields: { agentId: 1 },
         options: { background: true },
       },

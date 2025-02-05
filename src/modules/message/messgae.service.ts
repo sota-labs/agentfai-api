@@ -1,22 +1,25 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { plainToClass } from 'class-transformer';
-import { CreateMessageDto } from 'modules/message/dto/create-message.dto';
-import { MessageThreadResDto } from 'modules/message/dto/res.dto';
-import { Message } from 'modules/message/messgae.schema';
-import { Thread } from 'modules/thread/thread.schema';
-import { ThreadService } from 'modules/thread/thread.service';
 import { ClientSession, Model } from 'mongoose';
+import { CreateMessageDto } from 'modules/message/dtos/create-message.dto';
+import { Message, MessageDocument } from 'modules/message/messgae.schema';
+import { ThreadService } from 'modules/thread/thread.service';
+import { AgentService } from 'modules/agent/services/agent.service';
 
 @Injectable()
 export class MessageService {
   constructor(
-    @InjectModel(Message.name) private messageModel: Model<Message>,
-    @InjectModel(Thread.name) private threadModel: Model<Thread>,
+    @InjectModel(Message.name) private messageModel: Model<MessageDocument>,
     private readonly threadService: ThreadService,
+    private readonly agentService: AgentService,
   ) {}
 
-  async create(userId: string, createMessageDto: CreateMessageDto, session: ClientSession) {
+  async create(userId: string, createMessageDto: CreateMessageDto, session: ClientSession): Promise<MessageDocument> {
+    const agent = await this.agentService.findOne(createMessageDto.agentId);
+    if (!agent) {
+      throw new BadRequestException('Agent not found');
+    }
+
     if (!createMessageDto.threadId) {
       const threadName = `Thread ${userId} ${Date.now()}`;
       const thread = await this.threadService.create(userId, threadName, session);
@@ -33,12 +36,13 @@ export class MessageService {
     const [message] = await this.messageModel.create(
       [
         {
+          userId,
           ...createMessageDto,
           answer,
         },
       ],
       { session },
     );
-    return plainToClass(MessageThreadResDto, message);
+    return message;
   }
 }
