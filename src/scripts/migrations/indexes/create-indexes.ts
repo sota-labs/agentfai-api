@@ -15,12 +15,16 @@ export class CreateIndexes {
     await this.createUserIndexes();
     await this.createThreadIndexes();
     await this.createMessageIndexes();
+    await this.createAgentIndexes();
+    await this.createAgentConnectedIndexes();
   }
 
   async down() {
     await this.migrationHelper.dropIndexes('users');
     await this.migrationHelper.dropIndexes('threads');
     await this.migrationHelper.dropIndexes('messages');
+    await this.migrationHelper.dropIndexes('agents');
+    await this.migrationHelper.dropIndexes('agent-connected');
   }
 
   private async createUserIndexes() {
@@ -63,5 +67,29 @@ export class CreateIndexes {
       },
     ];
     await this.migrationHelper.createIndexes('messages', indexes);
+  }
+
+  private async createAgentIndexes() {
+    const indexes = [
+      {
+        fields: { agentId: 1 },
+        options: { background: true, unique: true },
+      },
+      {
+        fields: { apiKey: 1 },
+        options: { background: true, unique: true },
+      },
+    ];
+    await this.migrationHelper.createIndexes('agents', indexes);
+  }
+
+  private async createAgentConnectedIndexes() {
+    const indexes = [
+      {
+        fields: { userId: 1, agentId: 1 },
+        options: { background: true, unique: true },
+      },
+    ];
+    await this.migrationHelper.createIndexes('agent-connected', indexes);
   }
 }

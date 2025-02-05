@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { TokenPayload } from 'google-auth-library';
-import { OauthGoogleService } from './oauth.google.service';
-import { LoginReqDto } from '../dtos/req.dto';
-import { LoginResDto } from '../dtos/res.dto';
+import { OauthGoogleService } from 'modules/auth/services/oauth.google.service';
+import { LoginReqDto } from 'modules/auth/dtos/req.dto';
+import { LoginResDto } from 'modules/auth/dtos/res.dto';
 import { LoggerUtils } from 'common/utils/logger.utils';
 import { TAccessTokenPayload, TLoginResponse } from 'common/types/auth.type';
 import { User } from 'modules/user/schemas/user.schema';
