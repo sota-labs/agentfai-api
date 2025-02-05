@@ -4,8 +4,8 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { IS_PUBLIC_KEY } from 'common/decorators/public.decorator';
-import { IAuthUser } from 'common/interfaces/auth';
 import { IS_BACKEND_KEY } from 'common/decorators/backend.decorator';
+import { TAccessTokenPayload } from 'common/types/auth.type';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -41,7 +41,7 @@ export class AuthGuard implements CanActivate {
     }
 
     try {
-      const payload: IAuthUser = await this.jwtService.verifyAsync(token, {
+      const payload: TAccessTokenPayload = await this.jwtService.verifyAsync(token, {
         secret: this.configService.getOrThrow<string>('app.jwt.secret'),
       });
 

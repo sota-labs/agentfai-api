@@ -53,7 +53,7 @@ export class AuthService {
 
     const payload = await this._extractGGLoginPayload(body.idToken);
     const user = await this._constructUserToLogin({ idToken: body.idToken, payload });
-    const loginResponse = await this._handleLoginResponse(user, payload);
+    const loginResponse = await this._handleLoginResponse(user, { userId: user.userId, ...payload });
 
     return loginResponse;
   }
