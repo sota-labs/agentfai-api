@@ -1,31 +1,57 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectModel } from '@nestjs/mongoose';
-import { MessageStatus } from 'common/constants/agent';
-import { AgentService } from 'modules/agent/services/agent.service';
-import { AgentWebhookTriggerDto } from 'modules/message/dtos/agent-webhook-trigger.dto';
-import { CreateMessageDto } from 'modules/message/dtos/create-message.dto';
-import { ISSEData, ISSEMessage } from 'modules/message/message.interface';
-import { Message, MessageDocument } from 'modules/message/messgae.schema';
-import { ThreadService } from 'modules/thread/thread.service';
+import { HttpService } from '@nestjs/axios';
 import { ClientSession, Model } from 'mongoose';
 import { Observable } from 'rxjs';
+import { CreateMessageDto } from 'modules/message/dtos/create-message.dto';
+import { ISSEData, ISSEMessage } from 'modules/message/message.interface';
+import { Message, MessageDocument } from 'modules/message/message.schema';
+import { ThreadService } from 'modules/thread/thread.service';
+import { AgentService } from 'modules/agent/services/agent.service';
+import { AgentConnectedService } from 'modules/agent/services/agent-connected.service';
+import { AgentDocument } from 'modules/agent/schemas/agent.schema';
+import { LoggerUtils } from 'common/utils/logger.utils';
+import { MessageStatus } from 'common/constants/agent';
+import { AgentWebhookTriggerDto } from 'modules/message/dtos/agent-webhook-trigger.dto';
 
 @Injectable()
 export class MessageService {
+  private readonly logger = LoggerUtils.get(MessageService.name);
+
   constructor(
     @InjectModel(Message.name) private messageModel: Model<MessageDocument>,
     private readonly threadService: ThreadService,
     private readonly agentService: AgentService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly agentConnectedService: AgentConnectedService,
+    private readonly httpService: HttpService,
   ) {}
 
-  findOne(messageId: string): Promise<MessageDocument> {
+  private async _sendMessageToAIAgent(agent: AgentDocument, accessToken: string, message: string): Promise<void> {
+    const response = await this.httpService.axiosRef.post(
+      `${agent.apiUrl}`,
+      {
+        query: message,
+      },
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      },
+    );
+
+    this.logger.info(`Response from AI agent: ${JSON.stringify(response.data)}`);
+  }
+
+  async findOne(messageId: string): Promise<MessageDocument> {
     return this.messageModel.findOne({ _id: messageId });
   }
 
   async create(userId: string, createMessageDto: CreateMessageDto, session: ClientSession): Promise<MessageDocument> {
-    const agent = await this.agentService.findOne(createMessageDto.agentId);
+    const [agent, accessToken] = await Promise.all([
+      this.agentService.findOne(createMessageDto.agentId),
+      this.agentConnectedService.getAccessToken(userId, createMessageDto.agentId),
+    ]);
+
     if (!agent) {
       throw new BadRequestException('Agent not found');
     }
@@ -36,11 +62,14 @@ export class MessageService {
       createMessageDto.threadId = thread._id.toString();
     }
 
+    await this._sendMessageToAIAgent(agent, accessToken, createMessageDto.question);
+
     const [message] = await this.messageModel.create(
       [
         {
           userId,
           ...createMessageDto,
+          answer: '',
         },
       ],
       { session },

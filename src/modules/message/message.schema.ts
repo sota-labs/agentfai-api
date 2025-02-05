@@ -17,7 +17,7 @@ export class Message {
   @Prop({ required: true })
   question: string;
 
-  @Prop({ required: false })
+  @Prop()
   answer: string;
 
   @Prop({ required: true, enum: MessageStatus, default: MessageStatus.PROCESSING })

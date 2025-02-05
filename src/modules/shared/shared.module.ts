@@ -7,8 +7,8 @@ import { RedisModule } from 'nestjs-redis';
 import config from 'config';
 import { Thread } from 'modules/thread/thread.schema';
 import { ThreadSchema } from 'modules/thread/thread.schema';
-import { MessageSchema } from 'modules/message/messgae.schema';
-import { Message } from 'modules/message/messgae.schema';
+import { MessageSchema } from 'modules/message/message.schema';
+import { Message } from 'modules/message/message.schema';
 
 @Module({
   imports: [

@@ -8,7 +8,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from 'modules/auth/auth.module';
 import { ThreadModule } from 'modules/thread/thread.module';
-import { MessageModule } from 'modules/message/messgae.module';
+import { MessageModule } from 'modules/message/message.module';
 import { AgentModule } from 'modules/agent/agent.module';
 import { UserModule } from 'modules/user/user.module';
 
