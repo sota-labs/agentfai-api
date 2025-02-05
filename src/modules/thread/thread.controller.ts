@@ -40,9 +40,13 @@ export class ThreadController {
   @Get(':id/messages')
   @ApiOperation({ summary: 'Get messages of a specific thread' })
   @ApiOkResponse({ type: PaginateMessageResDto })
-  async getMessages(@UserId() userId: string, @Param('id') id: string): Promise<PaginateMessageResDto> {
-    const messages = await this.threadService.getMessagesByThreadId(userId, id);
-    console.log('messages: ', messages);
+  @ApiPaginationQuery()
+  async getMessages(
+    @UserId() userId: string,
+    @Param('id') id: string,
+    @Query() paginate: IPagination,
+  ): Promise<PaginateMessageResDto> {
+    const messages = await this.threadService.getMessagesByThreadId(id, paginate, userId);
     return plainToInstance(PaginateMessageResDto, messages);
   }
 
