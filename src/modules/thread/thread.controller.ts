@@ -42,6 +42,7 @@ export class ThreadController {
   @ApiOkResponse({ type: PaginateMessageResDto })
   async getMessages(@UserId() userId: string, @Param('id') id: string): Promise<PaginateMessageResDto> {
     const messages = await this.threadService.getMessagesByThreadId(userId, id);
+    console.log('messages: ', messages);
     return plainToInstance(PaginateMessageResDto, messages);
   }
 

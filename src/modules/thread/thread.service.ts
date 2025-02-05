@@ -36,6 +36,7 @@ export class ThreadService {
   }
 
   async getMessagesByThreadId(userId: string, _id: string): Promise<PaginateResult<MessageDocument>> {
+    console.log('_id: ', _id);
     const messages = await this.messageModel.paginate({ threadId: _id, userId }, { sort: { createdAt: -1 } });
     return messages;
   }

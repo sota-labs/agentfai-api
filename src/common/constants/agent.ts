@@ -1,6 +1,7 @@
 export enum MessageStatus {
-  ACTIVE = 'active',
-  HIDDEN = 'hidden',
+  PROCESSING = 'processing',
+  DONE = 'done',
+  CANCELLED = 'cancelled',
   DELETED = 'deleted',
 }
 

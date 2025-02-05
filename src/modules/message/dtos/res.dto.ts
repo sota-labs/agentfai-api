@@ -26,12 +26,12 @@ export class MessageThreadResDto {
   answer: string;
 
   @Expose()
-  @ApiProperty({ type: Number, example: 1712256000000 })
+  @ApiProperty({ type: Number, example: 1712256000 })
   @Transform(({ obj }) => Math.floor(obj.createdAt.getTime() / 1000))
   createdAt: number;
 
   @Expose()
-  @ApiProperty({ type: Number, example: 1712256000000 })
+  @ApiProperty({ type: Number, example: 1712256000 })
   @Transform(({ obj }) => Math.floor(obj.updatedAt.getTime() / 1000))
   updatedAt: number;
 }

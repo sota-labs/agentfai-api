@@ -1,4 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { MessageStatus } from 'common/constants/agent';
 import { HydratedDocument } from 'mongoose';
 import MongoosePaginate from 'mongoose-paginate-v2';
 
@@ -16,8 +17,11 @@ export class Message {
   @Prop({ required: true })
   question: string;
 
-  @Prop({ required: true })
+  @Prop({ required: false })
   answer: string;
+
+  @Prop({ required: false, enum: MessageStatus, default: MessageStatus.PROCESSING })
+  status: MessageStatus;
 
   createdAt: Date;
 
