@@ -8,6 +8,8 @@ import { AgentService } from 'modules/agent/services/agent.service';
 import { MessageStatus } from 'common/constants/agent';
 import { AgentWebhookTriggerDto } from 'modules/message/dtos/agent-webhook-trigger.dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { Observable } from 'rxjs';
+import { ISSEData, ISSEMessage } from 'modules/message/message.interface';
 
 @Injectable()
 export class MessageService {
@@ -70,7 +72,10 @@ export class MessageService {
     message.answer = agentWebhookTriggerDto.answer;
     await message.save();
 
-    this.eventEmitter.emit('message.created', message);
+    this.eventEmitter.emit(`message.${message._id}`, {
+      answer: agentWebhookTriggerDto.answer,
+      status: MessageStatus.DONE,
+    });
 
     return 'Ok';
   }
@@ -90,6 +95,76 @@ export class MessageService {
     message.status = MessageStatus.CANCELLED;
     await message.save();
 
+    this.eventEmitter.emit(`message.${message._id}`, {
+      answer: 'Request cancelled',
+      status: MessageStatus.CANCELLED,
+    });
+
     return 'Ok';
+  }
+
+  /**
+   * Handle SSE
+   * @param messageId
+   * @returns
+   *
+   * Step 1: Get message initial
+   * Step 2: Stream answer if message has answer
+   * Step 3: If don't have answer, subscribe to event => stream answer when message is updated
+   * Step 4: Cleanup
+   */
+  async hanldeSSE(messageId: string) {
+    return new Observable<ISSEMessage>((subscriber) => {
+      // Get message initial
+      const initializeMessage = async () => {
+        const message = await this.findOne(messageId);
+        if (!message) {
+          subscriber.error(new BadRequestException('Message not found'));
+          return;
+        }
+
+        // If message has answer
+        if (message.status === MessageStatus.DONE) {
+          streamAnswer(message.answer);
+        } else if (message.status === MessageStatus.CANCELLED) {
+          streamAnswer('Message cancelled');
+        }
+      };
+
+      // Function to stream each character
+      const streamAnswer = (answer: string) => {
+        const chars = answer.split('');
+        let index = 0;
+
+        const streamInterval = setInterval(() => {
+          if (index < chars.length) {
+            subscriber.next({
+              data: { content: chars[index] },
+              type: 'message',
+              id: String(index + 1),
+            });
+            index++;
+          } else {
+            clearInterval(streamInterval);
+            subscriber.complete();
+          }
+        }, 100);
+      };
+
+      // Listen for event when message is updated
+      const listener = (data: ISSEData) => {
+        streamAnswer(data.answer);
+      };
+
+      // Subscribe to event
+      this.eventEmitter.on(`message.${messageId}`, listener);
+
+      initializeMessage();
+
+      // Cleanup
+      return () => {
+        this.eventEmitter.removeListener(`message.${messageId}`, listener);
+      };
+    });
   }
 }
