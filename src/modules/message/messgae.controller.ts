@@ -1,10 +1,9 @@
 import { Body, Controller, Param, Post, Put, Sse } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/mongoose';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiProperty, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
 import { UserId } from 'common/decorators/user-id.decorator';
 import { MongoUtils } from 'common/utils/mongo.utils';
-import { AgentWebhookTriggerDto } from 'modules/message/dtos/agent-webhook-trigger.dto';
 import { CreateMessageDto } from 'modules/message/dtos/create-message.dto';
 import { MessageThreadResDto } from 'modules/message/dtos/res.dto';
 import { MessageService } from 'modules/message/messgae.service';
@@ -37,14 +36,6 @@ export class MessageController {
   @Sse('sse/:messageId')
   async sse(@Param('messageId') messageId: string): Promise<Observable<any>> {
     return this.messageService.hanldeSSE(messageId);
-  }
-
-  @Post('agent-webhook-trigger')
-  @ApiProperty({ type: AgentWebhookTriggerDto })
-  @ApiOperation({ summary: 'Webhook trigger an agent' })
-  @ApiOkResponse({ schema: { type: 'string', example: 'Ok' } })
-  async agentWebhookTrigger(@Body() agentWebhookTriggerDto: AgentWebhookTriggerDto): Promise<string> {
-    return this.messageService.agentWebhookTrigger(agentWebhookTriggerDto);
   }
 
   @Put(':messageId/cancel')

@@ -1,15 +1,15 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectModel } from '@nestjs/mongoose';
-import { ClientSession, Model } from 'mongoose';
+import { MessageStatus } from 'common/constants/agent';
+import { AgentService } from 'modules/agent/services/agent.service';
+import { AgentWebhookTriggerDto } from 'modules/message/dtos/agent-webhook-trigger.dto';
 import { CreateMessageDto } from 'modules/message/dtos/create-message.dto';
+import { ISSEData, ISSEMessage } from 'modules/message/message.interface';
 import { Message, MessageDocument } from 'modules/message/messgae.schema';
 import { ThreadService } from 'modules/thread/thread.service';
-import { AgentService } from 'modules/agent/services/agent.service';
-import { MessageStatus } from 'common/constants/agent';
-import { AgentWebhookTriggerDto } from 'modules/message/dtos/agent-webhook-trigger.dto';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { ClientSession, Model } from 'mongoose';
 import { Observable } from 'rxjs';
-import { ISSEData, ISSEMessage } from 'modules/message/message.interface';
 
 @Injectable()
 export class MessageService {
