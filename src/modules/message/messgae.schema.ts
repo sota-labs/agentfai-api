@@ -16,7 +16,7 @@ export class Message {
   @Prop({ required: true })
   question: string;
 
-  @Prop({ required: true })
+  @Prop()
   answer: string;
 
   createdAt: Date;

@@ -15,6 +15,9 @@ export class Agent {
   description: string;
 
   @Prop({ required: true })
+  apiUrl: string;
+
+  @Prop({ required: true })
   apiKey: string;
 }
 
