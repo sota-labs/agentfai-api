@@ -46,7 +46,7 @@ export class ThreadController {
     @Param('id') id: string,
     @Query() paginate: IPagination,
   ): Promise<PaginateMessageResDto> {
-    const messages = await this.threadService.getMessagesByThreadId(userId, id, paginate);
+    const messages = await this.threadService.getMessagesByThreadId(id, paginate, userId);
     return plainToInstance(PaginateMessageResDto, messages);
   }
 
