@@ -5,6 +5,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { IS_PUBLIC_KEY } from 'common/decorators/public.decorator';
 import { IAuthUser } from 'common/interfaces/auth';
+import { IS_BACKEND_KEY } from 'common/decorators/backend.decorator';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -21,6 +22,15 @@ export class AuthGuard implements CanActivate {
     ]);
 
     if (isPublic) {
+      return true;
+    }
+
+    const isBackend = this.reflector.getAllAndOverride<boolean>(IS_BACKEND_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+
+    if (isBackend) {
       return true;
     }
 

@@ -13,8 +13,12 @@ export class Agent {
 
   @Prop({ required: true })
   description: string;
+
+  @Prop({ required: true })
+  apiKey: string;
 }
 
 export const AgentSchema = SchemaFactory.createForClass(Agent);
 AgentSchema.index({ agentId: 1 }, { unique: true });
+AgentSchema.index({ apiKey: 1 }, { unique: true });
 AgentSchema.plugin(MongoosePaginate);

@@ -26,4 +26,8 @@ export class AgentService implements OnModuleInit {
   async findOne(agentId: string): Promise<AgentDocument | null> {
     return await this.agentModel.findOne({ agentId });
   }
+
+  async findByApiKey(apiKey: string): Promise<AgentDocument | null> {
+    return await this.agentModel.findOne({ apiKey });
+  }
 }
