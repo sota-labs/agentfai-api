@@ -20,7 +20,7 @@ export class Message {
   @Prop({ required: false })
   answer: string;
 
-  @Prop({ required: false, enum: MessageStatus, default: MessageStatus.PROCESSING })
+  @Prop({ required: true, enum: MessageStatus, default: MessageStatus.PROCESSING })
   status: MessageStatus;
 
   createdAt: Date;
