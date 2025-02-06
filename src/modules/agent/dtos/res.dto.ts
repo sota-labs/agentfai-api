@@ -14,6 +14,10 @@ export class AgentResDto {
   @Expose()
   @ApiProperty({ type: String })
   description: string;
+
+  @Expose()
+  @ApiProperty({ type: String })
+  logoUrl: string;
 }
 
 @Exclude()

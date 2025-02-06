@@ -30,4 +30,16 @@ export class AgentService implements OnModuleInit {
   async findByApiKey(apiKey: string): Promise<AgentDocument | null> {
     return await this.agentModel.findOne({ apiKey });
   }
+
+  async bulkWrite(agents: Agent[]): Promise<void> {
+    await this.agentModel.bulkWrite(
+      agents.map((agent) => ({
+        updateOne: {
+          filter: { agentId: agent.agentId },
+          update: { $set: agent },
+          upsert: true,
+        },
+      })),
+    );
+  }
 }
