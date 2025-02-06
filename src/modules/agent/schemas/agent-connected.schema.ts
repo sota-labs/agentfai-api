@@ -26,9 +26,6 @@ export class AgentConnected {
 
   @Prop({ required: true })
   accessTokenExpiresAt: number;
-
-  @Prop({ required: true })
-  refreshTokenExpiresAt: number;
 }
 
 export const AgentConnectedSchema = SchemaFactory.createForClass(AgentConnected);

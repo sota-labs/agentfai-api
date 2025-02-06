@@ -3,6 +3,7 @@ import databaseConfig, { dbRegToken, IDatabaseConfig } from './database.config';
 import swaggerConfig, { ISwaggerConfig, swaggerRegToken } from './swagger.config';
 import redisConfig, { redisRegToken, IRedisConfig } from './redis.config';
 import authConfig, { authRegToken, IAuthConfig } from './auth.config';
+import raidenxConfig, { IRaidenxConfig, raidenxRegToken } from './raidenx.config';
 
 export interface AllConfigType {
   [appRegToken]: IAppConfig;
@@ -10,6 +11,7 @@ export interface AllConfigType {
   [dbRegToken]: IDatabaseConfig;
   [swaggerRegToken]: ISwaggerConfig;
   [redisRegToken]: IRedisConfig;
+  [raidenxRegToken]: IRaidenxConfig;
 }
 
 type RecordNamePaths<T> = T extends object
@@ -20,6 +22,6 @@ type RecordNamePaths<T> = T extends object
 
 export type ConfigKeyPaths = RecordNamePaths<AllConfigType>;
 
-const configs = [appConfig, authConfig, databaseConfig, swaggerConfig, redisConfig];
+const configs = [appConfig, authConfig, databaseConfig, swaggerConfig, redisConfig, raidenxConfig];
 
 export default configs;

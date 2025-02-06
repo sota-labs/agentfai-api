@@ -33,8 +33,4 @@ export class AgentConnectedResDto {
   @Expose()
   @ApiProperty({ type: Number })
   accessTokenExpiresAt: number;
-
-  @Expose()
-  @ApiProperty({ type: Number })
-  refreshTokenExpiresAt: number;
 }

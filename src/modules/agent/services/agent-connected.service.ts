@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { JwtService } from '@nestjs/jwt';
 import { HttpService } from '@nestjs/axios';
+import { ConfigService } from '@nestjs/config';
 import { Model } from 'mongoose';
 import { AgentConnected, AgentConnectedDocument } from 'modules/agent/schemas/agent-connected.schema';
 import { AgentService } from 'modules/agent/services/agent.service';
@@ -16,14 +17,47 @@ export class AgentConnectedService {
     @InjectModel(AgentConnected.name) private agentConnectedModel: Model<AgentConnectedDocument>,
     private readonly jwtService: JwtService,
     private readonly agentService: AgentService,
+    private readonly configService: ConfigService,
     private readonly httpService: HttpService,
   ) {}
 
   private async _refreshAccessToken(agentConnected: AgentConnectedDocument): Promise<string> {
-    // TODO: Call API to refresh access token
-    // TODO: Update access token in database, and return new access token
     this.logger.info(`Refreshing access token for user ${agentConnected.userId} and agent ${agentConnected.agentId}`);
-    throw new Error('Not implemented');
+    const baseUrl = this.configService.get('raidenx.oauth2Url');
+    const url = `${baseUrl}/api/v1/refresh-access-token`;
+
+    const body = {
+      clientId: CryptoUtils.decrypt(agentConnected.clientId),
+      clientSecret: CryptoUtils.decrypt(agentConnected.clientSecret),
+      refreshToken: CryptoUtils.decrypt(agentConnected.refreshToken),
+      accessToken: CryptoUtils.decrypt(agentConnected.accessToken),
+    };
+
+    try {
+      const response = await this.httpService.axiosRef.post(url, body);
+      const newAccessToken = response.data.accessToken;
+      const newRefreshToken = response.data.refreshToken;
+
+      // update agentConnected
+      await this.agentConnectedModel.findOneAndUpdate(
+        { userId: agentConnected.userId, agentId: agentConnected.agentId },
+        {
+          $set: {
+            accessToken: CryptoUtils.encrypt(newAccessToken),
+            refreshToken: CryptoUtils.encrypt(newRefreshToken),
+            accessTokenExpiresAt: this.jwtService.decode(newAccessToken)?.exp ?? 0,
+          },
+        },
+      );
+
+      return newAccessToken;
+    } catch (error) {
+      this.logger.error(`Error refreshing access token: ${error}`);
+
+      // delete agentConnected
+      await this.agentConnectedModel.deleteOne({ userId: agentConnected.userId, agentId: agentConnected.agentId });
+      throw new BadRequestException('Agent be not connected');
+    }
   }
 
   async connectAgent(
@@ -50,7 +84,6 @@ export class AgentConnectedService {
           clientId: clientIdEncrypted,
           clientSecret: clientSecretEncrypted,
           accessTokenExpiresAt: this.jwtService.decode(params.accessToken)?.exp ?? 0,
-          refreshTokenExpiresAt: this.jwtService.decode(params.refreshToken)?.exp ?? 0,
         },
       },
       { upsert: true, new: true },

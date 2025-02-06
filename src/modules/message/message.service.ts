@@ -28,16 +28,24 @@ export class MessageService {
     private readonly httpService: HttpService,
   ) {}
 
-  private async _sendMessageToAIAgent(agent: AgentDocument, accessToken: string, message: string): Promise<void> {
-    const response = await this.httpService.axiosRef.post(
-      `${agent.apiUrl}`,
-      {
-        query: message,
-      },
-      {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      },
-    );
+  private async _sendMessageToAIAgent(
+    agent: AgentDocument,
+    params: {
+      accessToken?: string;
+      message: string;
+      messageId: string;
+      threadId: string;
+    },
+  ): Promise<void> {
+    const body = {
+      content: params.message,
+      message_id: params.messageId,
+      thread_id: params.threadId,
+    };
+
+    const headers = params.accessToken ? { Authorization: `Bearer ${params.accessToken}` } : {};
+
+    const response = await this.httpService.axiosRef.post(`${agent.apiUrl}`, body, { headers });
 
     this.logger.info(`Response from AI agent: ${JSON.stringify(response.data)}`);
   }
@@ -73,7 +81,18 @@ export class MessageService {
       { session },
     );
     await this.threadService.incrementTotalMessages(createMessageDto.threadId, agent.agentId, session);
-    await this._sendMessageToAIAgent(agent, accessToken, createMessageDto.question);
+
+    try {
+      await this._sendMessageToAIAgent(agent, {
+        accessToken,
+        message: createMessageDto.question,
+        messageId: message._id.toString(),
+        threadId: createMessageDto.threadId,
+      });
+    } catch (error) {
+      this.logger.error(`Error sending message to AI agent: ${error}`);
+      throw new BadRequestException('Agent is not available');
+    }
     return message;
   }
 
