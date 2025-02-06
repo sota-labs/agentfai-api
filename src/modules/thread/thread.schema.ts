@@ -14,6 +14,15 @@ export class Thread {
   @Prop({ required: true, enum: ThreadStatus, default: ThreadStatus.ACTIVE })
   status: ThreadStatus;
 
+  @Prop({ default: 0 })
+  totalMessages: number;
+
+  @Prop({ default: 0 })
+  lastViewedAt: number;
+
+  @Prop({ required: true })
+  activeAgentId: string;
+
   createdAt: Date;
 
   updatedAt: Date;

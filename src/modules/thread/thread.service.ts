@@ -4,6 +4,7 @@ import { ClientSession, PaginateModel, PaginateResult } from 'mongoose';
 import { Message, MessageDocument } from 'modules/message/message.schema';
 import { Thread, ThreadDocument } from 'modules/thread/thread.schema';
 import { IPagination } from 'common/decorators/paginate.decorator';
+import { TimeUtils } from 'common/utils/time.utils';
 
 @Injectable()
 export class ThreadService {
@@ -18,6 +19,9 @@ export class ThreadService {
         {
           userId,
           name,
+          activeAgentId: '',
+          totalMessages: 0,
+          lastViewedAt: TimeUtils.nowInSeconds(),
         },
       ],
       { session },
@@ -31,7 +35,11 @@ export class ThreadService {
   }
 
   async getDetailsByThreadId(userId: string, _id: string): Promise<ThreadDocument> {
-    const thread = await this.threadModel.findOne({ _id, userId });
+    const thread = await this.threadModel.findOneAndUpdate(
+      { _id, userId },
+      { $set: { lastViewedAt: TimeUtils.nowInSeconds() } },
+      { new: true },
+    );
     return thread;
   }
 
@@ -49,5 +57,14 @@ export class ThreadService {
 
   async delete(userId: string, _id: string): Promise<void> {
     await this.threadModel.deleteOne({ _id, userId });
+  }
+
+  async incrementTotalMessages(threadId: string, toAgentId: string, session: ClientSession): Promise<ThreadDocument> {
+    const thread = await this.threadModel.findOneAndUpdate(
+      { _id: threadId },
+      { $inc: { totalMessages: 1 }, $set: { activeAgentId: toAgentId } },
+      { session, new: true },
+    );
+    return thread;
   }
 }

@@ -62,8 +62,6 @@ export class MessageService {
       createMessageDto.threadId = thread._id.toString();
     }
 
-    await this._sendMessageToAIAgent(agent, accessToken, createMessageDto.question);
-
     const [message] = await this.messageModel.create(
       [
         {
@@ -74,17 +72,9 @@ export class MessageService {
       ],
       { session },
     );
-    await this._submitMessageToAgent(message._id.toString(), createMessageDto.question);
+    await this.threadService.incrementTotalMessages(createMessageDto.threadId, agent.agentId, session);
+    await this._sendMessageToAIAgent(agent, accessToken, createMessageDto.question);
     return message;
-  }
-
-  private async _submitMessageToAgent(messageId: string, question: string): Promise<any> {
-    console.log('question: ', question);
-    console.log('messageId: ', messageId);
-    // TODO: Call API to get answer
-    const rs = await Promise.resolve('AI Agent has received your question and is processing it...');
-
-    return rs;
   }
 
   async agentWebhookTrigger(agentWebhookTriggerDto: AgentWebhookTriggerDto): Promise<string> {
