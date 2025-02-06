@@ -33,25 +33,18 @@ export class AgentConnectedService {
       throw new BadRequestException('Agent not found');
     }
 
-    let accessTokenDecrypted = '';
-    let refreshTokenDecrypted = '';
-    try {
-      accessTokenDecrypted = CryptoUtils.decrypt(params.accessToken);
-      refreshTokenDecrypted = CryptoUtils.decrypt(params.refreshToken);
-    } catch (error) {
-      console.log(error);
-      throw new BadRequestException('Invalid token');
-    }
+    const accessTokenEncrypted = CryptoUtils.encrypt(params.accessToken);
+    const refreshTokenEncrypted = CryptoUtils.encrypt(params.refreshToken);
 
     const agentConnected = await this.agentConnectedModel.findOneAndUpdate(
       { userId },
       {
         $set: {
           agentId: params.agentId,
-          accessToken: params.accessToken,
-          refreshToken: params.refreshToken,
-          accessTokenExpiresAt: this.jwtService.decode(accessTokenDecrypted)?.exp ?? 0,
-          refreshTokenExpiresAt: this.jwtService.decode(refreshTokenDecrypted)?.exp ?? 0,
+          accessToken: accessTokenEncrypted,
+          refreshToken: refreshTokenEncrypted,
+          accessTokenExpiresAt: this.jwtService.decode(params.accessToken)?.exp ?? 0,
+          refreshTokenExpiresAt: this.jwtService.decode(params.refreshToken)?.exp ?? 0,
         },
       },
       { upsert: true, new: true },
@@ -76,6 +69,6 @@ export class AgentConnectedService {
       return this._refreshAccessToken(agentConnected);
     }
 
-    return agentConnected.accessToken;
+    return CryptoUtils.decrypt(agentConnected.accessToken);
   }
 }

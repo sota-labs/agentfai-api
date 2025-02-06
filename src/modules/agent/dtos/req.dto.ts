@@ -20,7 +20,7 @@ export class AgentConnectReqDto {
     type: String,
     required: true,
     example: '3d35b13b420a02e58082db61037768a9',
-    description: 'Access token be encoded',
+    description: 'Access token',
   })
   @IsString()
   @IsNotEmpty()
@@ -31,7 +31,7 @@ export class AgentConnectReqDto {
     type: String,
     required: true,
     example: '3d35b13b420a02e58082db61037768a9',
-    description: 'Refresh token be encoded',
+    description: 'Refresh token',
   })
   @IsString()
   @IsNotEmpty()
