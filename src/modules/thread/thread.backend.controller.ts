@@ -1,11 +1,10 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { ApiOperation, ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import { plainToInstance } from 'class-transformer';
 import { ApiKeyAuth } from 'common/decorators/api-key-auth.decorator';
 import { Backend } from 'common/decorators/backend.decorator';
-import { ApiPaginationQuery, IPagination } from 'common/decorators/paginate.decorator';
-import { PaginateMessageResDto } from 'modules/message/dtos/res.dto';
+import { MessageRoleResDto } from 'modules/message/dtos/res.dto';
 import { ThreadService } from 'modules/thread/thread.service';
+import { MockMessageReqDto } from 'modules/thread/dtos/req.dto';
 
 @ApiTags('Threads')
 @Controller({
@@ -19,10 +18,18 @@ export class ThreadBackendController {
   @Backend()
   @ApiKeyAuth()
   @ApiOperation({ summary: 'Get messages of a specific thread' })
-  @ApiOkResponse({ type: PaginateMessageResDto })
-  @ApiPaginationQuery()
-  async getMessages(@Param('id') id: string, @Query() paginate: IPagination): Promise<PaginateMessageResDto> {
-    const messages = await this.threadService.getMessagesByThreadId(id, paginate);
-    return plainToInstance(PaginateMessageResDto, messages);
+  @ApiOkResponse({ type: [MessageRoleResDto] })
+  async getMessages(@Param('id') id: string): Promise<MessageRoleResDto[]> {
+    const messages = await this.threadService.getMessageRoleByThreadId(id, 20);
+    return messages;
+  }
+
+  @Post(':id/messages')
+  @Backend()
+  @ApiKeyAuth()
+  @ApiOperation({ summary: 'Mock message for a specific thread' })
+  @ApiOkResponse({ type: [MessageRoleResDto] })
+  async mockMessage(@Param('id') id: string, @Body() body: MockMessageReqDto): Promise<MessageRoleResDto[]> {
+    return await this.threadService.mockMessage(id, body);
   }
 }

@@ -43,3 +43,18 @@ export class PaginateMessageResDto extends BasePaginationResDto<MessageThreadRes
   @Type(() => MessageThreadResDto)
   docs: MessageThreadResDto[];
 }
+
+@Exclude()
+export class MessageRoleResDto {
+  @Expose()
+  @ApiProperty({ type: String })
+  role: string;
+
+  @Expose()
+  @ApiProperty({ type: String })
+  content: string;
+
+  @Expose()
+  @ApiProperty({ type: String })
+  agentId: string;
+}

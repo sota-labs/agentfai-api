@@ -27,16 +27,16 @@ export class ApiKeyGuard implements CanActivate {
   }
 
   private extractApiKey(request: any): string | undefined {
-    // Try to extract from Authorization header
-    const authHeader = request.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      return authHeader.substring(7);
-    }
-
     // Try to extract from X-API-Key header
     const apiKey = request.headers['x-api-key'] ?? request.headers['X-API-KEY'];
     if (apiKey) {
       return apiKey;
+    }
+
+    // Try to extract from Authorization header
+    const authHeader = request.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      return authHeader.substring(7);
     }
 
     // Try to extract from query parameter

@@ -5,6 +5,8 @@ import { Message, MessageDocument } from 'modules/message/message.schema';
 import { Thread, ThreadDocument } from 'modules/thread/thread.schema';
 import { IPagination } from 'common/decorators/paginate.decorator';
 import { TimeUtils } from 'common/utils/time.utils';
+import { MessageRoleResDto } from 'modules/message/dtos/res.dto';
+import { MockMessageReqDto } from 'modules/thread/dtos/req.dto';
 
 @Injectable()
 export class ThreadService {
@@ -66,5 +68,55 @@ export class ThreadService {
       { session, new: true },
     );
     return thread;
+  }
+
+  async getMessageRoleByThreadId(threadId: string, size: number = 20): Promise<MessageRoleResDto[]> {
+    const messages = await this.messageModel.find({ threadId }, null, { sort: { createdAt: -1 }, limit: size });
+
+    const result = [];
+    messages.forEach((message) => {
+      result.push({
+        role: 'user',
+        content: message.question,
+        agentId: null,
+      });
+
+      if (message.answer) {
+        result.push({
+          role: 'assistant',
+          content: message.answer,
+          agentId: message.agentId,
+        });
+      }
+    });
+    return result;
+  }
+
+  async mockMessage(threadId: string, data: MockMessageReqDto): Promise<MessageRoleResDto[]> {
+    await this.messageModel.create({
+      threadId,
+      userId: 'faker',
+      question: data.question,
+      answer: data.answer,
+      agentId: data.agentId,
+    });
+
+    const result = [
+      {
+        role: 'user',
+        content: data.question,
+        agentId: null,
+      },
+    ];
+
+    if (data.answer) {
+      result.push({
+        role: 'assistant',
+        content: data.answer,
+        agentId: data.agentId,
+      });
+    }
+
+    return result;
   }
 }
