@@ -1,5 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { JwtService } from '@nestjs/jwt';
+import { HttpService } from '@nestjs/axios';
 import { ClientSession, PaginateModel, PaginateResult } from 'mongoose';
 import { Message, MessageDocument } from 'modules/message/message.schema';
 import { Thread, ThreadDocument } from 'modules/thread/thread.schema';
@@ -7,12 +9,18 @@ import { IPagination } from 'common/decorators/paginate.decorator';
 import { TimeUtils } from 'common/utils/time.utils';
 import { MessageRoleResDto } from 'modules/message/dtos/res.dto';
 import { MockMessageReqDto } from 'modules/thread/dtos/req.dto';
+import { AgentService } from 'modules/agent/services/agent.service';
+import { LoggerUtils } from 'common/utils/logger.utils';
 
 @Injectable()
 export class ThreadService {
+  private readonly logger = LoggerUtils.get(ThreadService.name);
   constructor(
     @InjectModel(Thread.name) private threadModel: PaginateModel<ThreadDocument>,
     @InjectModel(Message.name) private messageModel: PaginateModel<MessageDocument>,
+    private readonly jwtService: JwtService,
+    private readonly agentService: AgentService,
+    private readonly httpService: HttpService,
   ) {}
 
   async create(userId: string, name: string, session: ClientSession): Promise<ThreadDocument> {
@@ -92,31 +100,32 @@ export class ThreadService {
     return result;
   }
 
-  async mockMessage(threadId: string, data: MockMessageReqDto): Promise<MessageRoleResDto[]> {
-    await this.messageModel.create({
-      threadId,
-      userId: 'faker',
-      question: data.question,
-      answer: data.answer,
-      agentId: data.agentId,
-    });
-
-    const result = [
+  async mockMessage(threadId: string, data: MockMessageReqDto, accessToken: string): Promise<void> {
+    const [message] = await this.messageModel.create([
       {
-        role: 'user',
-        content: data.question,
-        agentId: null,
-      },
-    ];
-
-    if (data.answer) {
-      result.push({
-        role: 'assistant',
-        content: data.answer,
+        threadId,
+        userId: this.jwtService.decode(accessToken)?.userId ?? 'faker',
+        question: data.question,
+        answer: '',
         agentId: data.agentId,
-      });
+      },
+    ]);
+
+    const agent = await this.agentService.findOne(data.agentId);
+    if (!agent) {
+      throw new BadRequestException('Agent not found');
     }
 
-    return result;
+    const body = {
+      content: data.question,
+      message_id: message._id.toString(),
+      thread_id: threadId,
+    };
+
+    const headers = { Authorization: `Bearer ${accessToken}` };
+
+    const response = await this.httpService.axiosRef.post(`${agent.apiUrl}`, body, { headers });
+
+    this.logger.info(`Response from AI agent: ${JSON.stringify(response.data)}`);
   }
 }
