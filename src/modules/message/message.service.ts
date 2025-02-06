@@ -65,7 +65,7 @@ export class MessageService {
     }
 
     if (!createMessageDto.threadId) {
-      const threadName = `Thread ${userId} ${Date.now()}`;
+      const threadName = `Thread from ${new Date().toLocaleDateString('en-GB')}`;
       const thread = await this.threadService.create(userId, threadName, session);
       createMessageDto.threadId = thread._id.toString();
     }

@@ -35,7 +35,8 @@ import { Message } from 'modules/message/message.schema';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
-        secret: configService.getOrThrow<string>('app.jwt.secret'),
+        secret: configService.getOrThrow<string>('auth.jwt.secret'),
+        expiresIn: configService.getOrThrow<string>('auth.jwt.expiresIn'),
       }),
       inject: [ConfigService],
     }),

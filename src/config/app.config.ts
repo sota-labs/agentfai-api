@@ -8,9 +8,6 @@ const AppConfig = registerAs(appRegToken, () => ({
   env: process.env.NODE_ENV || 'local',
   port: process.env.API_PORT || 3000,
   prefixUrl: `api`.toLowerCase(),
-  jwt: {
-    secret: process.env.JWT_ACCESS_SECRET_KEY || 'secret',
-  },
   crypto: {
     secretKey: process.env.CRYPTO_SECRET_KEY || 'VERvizMry2DfC4QZiICzatwFwftJgvYC',
   },

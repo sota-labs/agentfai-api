@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { TokenPayload } from 'google-auth-library';
 import { OauthGoogleService } from 'modules/auth/services/oauth.google.service';
 import { LoginReqDto } from 'modules/auth/dtos/req.dto';
@@ -17,10 +18,14 @@ export class AuthService {
     private readonly oauthGoogleService: OauthGoogleService,
     private readonly jwtService: JwtService,
     private readonly userService: UserService,
+    private readonly configService: ConfigService,
   ) {}
 
   private async _handleLoginResponse(user: User, payload: TAccessTokenPayload): Promise<TLoginResponse> {
-    const accessToken = await this.jwtService.signAsync({ userId: user.userId, ...payload });
+    const accessToken = await this.jwtService.signAsync(
+      { userId: user.userId, ...payload },
+      { expiresIn: this.configService.getOrThrow<string>('auth.jwt.expiresIn') },
+    );
     return {
       accessToken,
       salt: user.salt,
@@ -43,6 +48,7 @@ export class AuthService {
     const newUser = await this.userService.create({
       idToken,
       sub: payload.sub,
+      name: payload.name,
     });
 
     return newUser.toObject();
