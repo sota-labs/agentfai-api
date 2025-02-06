@@ -8,7 +8,6 @@ export class CryptoUtils {
   static encrypt(text: string): string {
     const cipher = crypto.createCipheriv(algorithm, key, null);
     let encrypted = cipher.update(text, 'utf8', 'hex');
-    console.log('encrypted:', encrypted);
     encrypted += cipher.final('hex');
     return encrypted;
   }
@@ -16,7 +15,6 @@ export class CryptoUtils {
   static decrypt(encryptedData: string): string {
     const decipher = crypto.createDecipheriv(algorithm, key, null);
     let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
-    console.log('decrypted:', decrypted);
     decrypted += decipher.final('utf8');
     return decrypted;
   }

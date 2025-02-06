@@ -75,12 +75,6 @@ export class ThreadService {
 
     const result = [];
     messages.forEach((message) => {
-      result.push({
-        role: 'user',
-        content: message.question,
-        agentId: null,
-      });
-
       if (message.answer) {
         result.push({
           role: 'assistant',
@@ -88,6 +82,12 @@ export class ThreadService {
           agentId: message.agentId,
         });
       }
+
+      result.push({
+        role: 'user',
+        content: message.question,
+        agentId: null,
+      });
     });
     return result;
   }
