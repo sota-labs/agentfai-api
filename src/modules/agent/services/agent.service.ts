@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Agent, AgentDocument } from 'modules/agent/schemas';
@@ -41,5 +41,13 @@ export class AgentService implements OnModuleInit {
         },
       })),
     );
+  }
+
+  async getAgentDefault(): Promise<AgentDocument> {
+    const agent = await this.agentModel.findOne({ oauthRequired: false });
+    if (!agent) {
+      throw new BadRequestException('Agent default not found');
+    }
+    return agent;
   }
 }

@@ -4,15 +4,17 @@ import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 export class CreateMessageDto {
   @ApiProperty({
     example: '1',
+    required: false,
   })
+  @IsOptional()
+  @IsString()
   agentId: string;
 
-  @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
   @ApiProperty({
     example: 'What is the capital of France?',
   })
+  @IsString()
+  @IsNotEmpty()
   question: string;
 
   @ApiProperty({

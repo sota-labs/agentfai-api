@@ -37,6 +37,12 @@ export class MessageService {
       threadId: string;
     },
   ): Promise<void> {
+    if (!params.accessToken) {
+      // TODO: update logic send to agent default
+      // Temporary by pass
+      return;
+    }
+
     const body = {
       content: params.message,
       message_id: params.messageId,
@@ -55,10 +61,16 @@ export class MessageService {
   }
 
   async create(userId: string, createMessageDto: CreateMessageDto, session: ClientSession): Promise<MessageDocument> {
-    const [agent, accessToken] = await Promise.all([
-      this.agentService.findOne(createMessageDto.agentId),
-      this.agentConnectedService.getAccessToken(userId, createMessageDto.agentId),
-    ]);
+    let agent;
+    let accessToken = null;
+    if (createMessageDto.agentId) {
+      [agent, accessToken] = await Promise.all([
+        this.agentService.findOne(createMessageDto.agentId),
+        this.agentConnectedService.getAccessToken(userId, createMessageDto.agentId),
+      ]);
+    } else {
+      agent = await this.agentService.getAgentDefault();
+    }
 
     if (!agent) {
       throw new BadRequestException('Agent not found');
@@ -75,6 +87,7 @@ export class MessageService {
         {
           userId,
           ...createMessageDto,
+          agentId: agent.agentId,
           answer: '',
         },
       ],
