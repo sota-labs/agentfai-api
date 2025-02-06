@@ -22,6 +22,9 @@ export class Agent {
 
   @Prop({ required: true })
   apiKey: string;
+
+  @Prop({ required: true })
+  oauthRequired: boolean;
 }
 
 export const AgentSchema = SchemaFactory.createForClass(Agent);

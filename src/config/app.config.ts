@@ -11,7 +11,6 @@ const AppConfig = registerAs(appRegToken, () => ({
   jwt: {
     secret: process.env.JWT_ACCESS_SECRET_KEY || 'secret',
   },
-  dextradeUrl: process.env.DEXTRADE_URL || 'https://api.dextrade.bot/api/v1',
   crypto: {
     secretKey: process.env.CRYPTO_SECRET_KEY || 'VERvizMry2DfC4QZiICzatwFwftJgvYC',
   },

@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { CacheModule } from '@nestjs/cache-manager';
+import { HttpModule } from '@nestjs/axios';
 import { RedisModule } from 'nestjs-redis';
 import config from 'config';
 import { Thread } from 'modules/thread/thread.schema';
@@ -26,6 +27,10 @@ import { Message } from 'modules/message/message.schema';
         };
       },
       inject: [ConfigService],
+    }),
+    HttpModule.register({
+      timeout: 10000,
+      maxRedirects: 5,
     }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -51,6 +56,6 @@ import { Message } from 'modules/message/message.schema';
     ]),
   ],
   providers: [],
-  exports: [ConfigModule, JwtModule, MongooseModule, CacheModule],
+  exports: [ConfigModule, JwtModule, MongooseModule, CacheModule, HttpModule],
 })
 export class SharedModule {}

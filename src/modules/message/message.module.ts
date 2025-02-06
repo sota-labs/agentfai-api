@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { HttpModule } from '@nestjs/axios';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { AgentModule } from 'modules/agent/agent.module';
 import { MessageBackendController } from 'modules/message/message.backend.controller';
@@ -10,16 +9,7 @@ import { ThreadModule } from 'modules/thread/thread.module';
 import { ThreadService } from 'modules/thread/thread.service';
 
 @Module({
-  imports: [
-    SharedModule,
-    ThreadModule,
-    AgentModule,
-    EventEmitterModule.forRoot(),
-    HttpModule.register({
-      timeout: 10000,
-      maxRedirects: 5,
-    }),
-  ],
+  imports: [SharedModule, ThreadModule, AgentModule, EventEmitterModule.forRoot()],
   controllers: [MessageController, MessageBackendController],
   providers: [MessageService, ThreadService],
 })

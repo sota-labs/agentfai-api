@@ -20,7 +20,7 @@ export class Thread {
   @Prop({ default: 0 })
   lastViewedAt: number;
 
-  @Prop({ required: true })
+  @Prop()
   activeAgentId: string;
 
   createdAt: Date;

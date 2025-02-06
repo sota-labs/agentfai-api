@@ -18,6 +18,10 @@ export class AgentResDto {
   @Expose()
   @ApiProperty({ type: String })
   logoUrl: string;
+
+  @Expose()
+  @ApiProperty({ type: Boolean })
+  oauthRequired: boolean;
 }
 
 @Exclude()

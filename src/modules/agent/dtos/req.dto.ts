@@ -36,4 +36,26 @@ export class AgentConnectReqDto {
   @IsString()
   @IsNotEmpty()
   refreshToken: string;
+
+  @Expose()
+  @ApiProperty({
+    type: String,
+    required: true,
+    example: '0x1234567890`',
+    description: 'Client ID',
+  })
+  @IsString()
+  @IsNotEmpty()
+  clientId: string;
+
+  @Expose()
+  @ApiProperty({
+    type: String,
+    required: true,
+    example: '0x1234567890',
+    description: 'Client Secret',
+  })
+  @IsString()
+  @IsNotEmpty()
+  clientSecret: string;
 }

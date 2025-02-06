@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { JwtService } from '@nestjs/jwt';
+import { HttpService } from '@nestjs/axios';
 import { Model } from 'mongoose';
 import { AgentConnected, AgentConnectedDocument } from 'modules/agent/schemas/agent-connected.schema';
 import { AgentService } from 'modules/agent/services/agent.service';
@@ -15,6 +16,7 @@ export class AgentConnectedService {
     @InjectModel(AgentConnected.name) private agentConnectedModel: Model<AgentConnectedDocument>,
     private readonly jwtService: JwtService,
     private readonly agentService: AgentService,
+    private readonly httpService: HttpService,
   ) {}
 
   private async _refreshAccessToken(agentConnected: AgentConnectedDocument): Promise<string> {
@@ -26,7 +28,7 @@ export class AgentConnectedService {
 
   async connectAgent(
     userId: string,
-    params: { agentId: string; accessToken: string; refreshToken: string },
+    params: { agentId: string; accessToken: string; refreshToken: string; clientId: string; clientSecret: string },
   ): Promise<AgentConnectedDocument> {
     const agent = await this.agentService.findOne(params.agentId);
     if (!agent) {
@@ -35,6 +37,8 @@ export class AgentConnectedService {
 
     const accessTokenEncrypted = CryptoUtils.encrypt(params.accessToken);
     const refreshTokenEncrypted = CryptoUtils.encrypt(params.refreshToken);
+    const clientIdEncrypted = CryptoUtils.encrypt(params.clientId);
+    const clientSecretEncrypted = CryptoUtils.encrypt(params.clientSecret);
 
     const agentConnected = await this.agentConnectedModel.findOneAndUpdate(
       { userId },
@@ -43,6 +47,8 @@ export class AgentConnectedService {
           agentId: params.agentId,
           accessToken: accessTokenEncrypted,
           refreshToken: refreshTokenEncrypted,
+          clientId: clientIdEncrypted,
+          clientSecret: clientSecretEncrypted,
           accessTokenExpiresAt: this.jwtService.decode(params.accessToken)?.exp ?? 0,
           refreshTokenExpiresAt: this.jwtService.decode(params.refreshToken)?.exp ?? 0,
         },

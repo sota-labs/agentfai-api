@@ -19,6 +19,12 @@ export class AgentConnected {
   refreshToken: string;
 
   @Prop({ required: true })
+  clientId: string;
+
+  @Prop({ required: true })
+  clientSecret: string;
+
+  @Prop({ required: true })
   accessTokenExpiresAt: number;
 
   @Prop({ required: true })
