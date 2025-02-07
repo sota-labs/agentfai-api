@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
-import { LoggerUtils } from 'common/utils/logger.utils';
+import { LogExecutionTime, LoggerUtils } from 'common/utils/logger.utils';
 import { BaseProvider } from 'modules/shared/providers/base.provider';
 import { AgentConnectedDocument } from 'modules/agent/schemas';
 import { CryptoUtils } from 'common/utils/crypto.utils';
@@ -16,6 +16,7 @@ export class OAuthProvider extends BaseProvider {
     this.baseUrl = configService.getOrThrow<string>('raidenx.oauth2Url');
   }
 
+  @LogExecutionTime()
   async refreshAccessToken(
     agentConnected: AgentConnectedDocument,
   ): Promise<{ accessToken: string; refreshToken: string }> {

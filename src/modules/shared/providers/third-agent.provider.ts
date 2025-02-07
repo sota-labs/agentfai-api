@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
-import { LoggerUtils } from 'common/utils/logger.utils';
+import { LogExecutionTime, LoggerUtils } from 'common/utils/logger.utils';
 import { BaseProvider } from 'modules/shared/providers/base.provider';
 
 @Injectable()
@@ -10,6 +10,7 @@ export class ThirdAgentProvider extends BaseProvider {
     super(httpService);
   }
 
+  @LogExecutionTime()
   async sendMessage(params: {
     agentApiUrl: string;
     accessToken?: string;
