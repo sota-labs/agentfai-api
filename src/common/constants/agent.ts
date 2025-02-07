@@ -3,6 +3,7 @@ export enum MessageStatus {
   DONE = 'done',
   CANCELLED = 'cancelled',
   DELETED = 'deleted',
+  FAILED = 'failed', // message failed send to agent
 }
 
 export enum ThreadStatus {

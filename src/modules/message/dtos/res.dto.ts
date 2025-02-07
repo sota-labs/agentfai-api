@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Exclude, Expose, Transform, Type } from 'class-transformer';
+import { MessageStatus } from 'common/constants/agent';
 import { BasePaginationResDto } from 'common/dtos/paginate.dto';
 
 @Exclude()
@@ -16,6 +17,10 @@ export class MessageThreadResDto {
   @Expose()
   @ApiProperty({ type: String, example: '66b000000000000000000000' })
   threadId: string;
+
+  @Expose()
+  @ApiProperty({ type: String, example: MessageStatus.PROCESSING })
+  status: MessageStatus;
 
   @Expose()
   @ApiProperty({ type: String, example: 'What is the capital of France?' })
