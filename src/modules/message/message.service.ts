@@ -3,7 +3,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectModel } from '@nestjs/mongoose';
 import { HttpService } from '@nestjs/axios';
 import { ClientSession, Model } from 'mongoose';
-import { Observable } from 'rxjs';
+import { Observable, Subscriber } from 'rxjs';
 import { CreateMessageDto } from 'modules/message/dtos/create-message.dto';
 import { ISSEData, ISSEMessage } from 'modules/message/message.interface';
 import { Message, MessageDocument } from 'modules/message/message.schema';
@@ -18,6 +18,7 @@ import { AgentWebhookTriggerDto } from 'modules/message/dtos/agent-webhook-trigg
 @Injectable()
 export class MessageService {
   private readonly logger = LoggerUtils.get(MessageService.name);
+  private readonly TIMEOUT_AGENT_RESPONSE = 1000 * 30;
 
   constructor(
     @InjectModel(Message.name) private messageModel: Model<MessageDocument>,
@@ -142,12 +143,14 @@ export class MessageService {
     }
 
     // Need implement: Call API to cancel request
+    const answer = 'Message has been cancelled';
 
     message.status = MessageStatus.CANCELLED;
+    message.answer = answer;
     await message.save();
 
     this.eventEmitter.emit(`message.${message._id}`, {
-      answer: 'Request cancelled',
+      answer,
       status: MessageStatus.CANCELLED,
     });
 
@@ -164,49 +167,31 @@ export class MessageService {
    * Step 3: If don't have answer, subscribe to event => stream answer when message is updated
    * Step 4: Cleanup
    */
-  async hanldeSSE(messageId: string) {
+  async handleSSE(messageId: string) {
+    const message = await this.findOne(messageId);
+    if (!message) {
+      throw new BadRequestException('Message not found');
+    }
+
     return new Observable<ISSEMessage>((subscriber) => {
+      const timeoutId = setTimeout(async () => {
+        if (message.status === MessageStatus.PROCESSING) {
+          await this._handleTimeoutAgentResponse(message);
+        }
+      }, this.TIMEOUT_AGENT_RESPONSE);
+
       // Get message initial
       const initializeMessage = async () => {
-        const message = await this.findOne(messageId);
-        if (!message) {
-          subscriber.error(new BadRequestException('Message not found'));
-          return;
+        if (message.status !== MessageStatus.PROCESSING) {
+          this._streamAnswer(message.answer, subscriber);
         }
-
-        // If message has answer
-        if (message.status === MessageStatus.DONE) {
-          streamAnswer(message.answer);
-        } else if (message.status === MessageStatus.CANCELLED) {
-          streamAnswer('Message cancelled');
-        }
-      };
-
-      // Function to stream each character
-      const streamAnswer = (answer: string) => {
-        const chars = answer.split('');
-        let index = 0;
-
-        const streamInterval = setInterval(() => {
-          if (index < chars.length) {
-            subscriber.next({
-              data: { content: chars[index] },
-              type: 'message',
-              id: String(index + 1),
-            });
-            index++;
-          } else {
-            clearInterval(streamInterval);
-            subscriber.complete();
-          }
-        }, 100);
       };
 
       // Listen for event when message is updated
       const listener = (data: ISSEData) => {
-        streamAnswer(data.answer);
+        clearTimeout(timeoutId); // Clear timeout when we get a response
+        this._streamAnswer(data.answer, subscriber);
       };
-
       // Subscribe to event
       this.eventEmitter.on(`message.${messageId}`, listener);
 
@@ -214,8 +199,43 @@ export class MessageService {
 
       // Cleanup
       return () => {
+        clearTimeout(timeoutId);
         this.eventEmitter.removeListener(`message.${messageId}`, listener);
       };
+    });
+  }
+
+  private _streamAnswer(answer: string, subscriber: Subscriber<ISSEMessage>) {
+    const DELAY_TIME = 100;
+    const chars = answer.split('');
+    let index = 0;
+
+    const streamInterval = setInterval(() => {
+      if (index < chars.length) {
+        subscriber.next({
+          data: { content: chars[index] },
+          type: 'message',
+          id: (index + 1).toString(),
+        });
+        index++;
+      } else {
+        clearInterval(streamInterval);
+        subscriber.complete();
+      }
+    }, DELAY_TIME);
+  }
+
+  private async _handleTimeoutAgentResponse(message: MessageDocument) {
+    const answer = 'Something went wrong. Please try again later.';
+
+    await this.messageModel.findByIdAndUpdate(message._id, {
+      status: MessageStatus.FAILED,
+      answer,
+    });
+
+    this.eventEmitter.emit(`message.${message._id}`, {
+      answer,
+      status: MessageStatus.FAILED,
     });
   }
 }

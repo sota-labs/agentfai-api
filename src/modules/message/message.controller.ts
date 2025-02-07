@@ -36,7 +36,7 @@ export class MessageController {
 
   @Sse('sse/:messageId')
   async sse(@Param('messageId') messageId: string): Promise<Observable<any>> {
-    return this.messageService.hanldeSSE(messageId);
+    return this.messageService.handleSSE(messageId);
   }
 
   @Put(':messageId/cancel')
