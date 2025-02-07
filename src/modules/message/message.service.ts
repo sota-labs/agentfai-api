@@ -17,7 +17,7 @@ import { ThirdAgentProvider } from 'modules/shared/providers';
 @Injectable()
 export class MessageService {
   private readonly logger = LoggerUtils.get(MessageService.name);
-  private readonly TIMEOUT_AGENT_RESPONSE = 1000 * 30;
+  private readonly TIMEOUT_AGENT_RESPONSE = 1000 * 60;
 
   constructor(
     @InjectModel(Message.name) private messageModel: Model<MessageDocument>,
