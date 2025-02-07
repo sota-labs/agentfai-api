@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { RedisPubSubService } from 'common/base/redis-pubsub';
 import { AgentModule } from 'modules/agent/agent.module';
 import { MessageBackendController } from 'modules/message/message.backend.controller';
 import { MessageController } from 'modules/message/message.controller';
@@ -11,6 +12,6 @@ import { ThreadService } from 'modules/thread/thread.service';
 @Module({
   imports: [SharedModule, ThreadModule, AgentModule, EventEmitterModule.forRoot()],
   controllers: [MessageController, MessageBackendController],
-  providers: [MessageService, ThreadService],
+  providers: [MessageService, ThreadService, RedisPubSubService],
 })
 export class MessageModule {}
