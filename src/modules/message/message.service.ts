@@ -1,20 +1,19 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { InjectModel } from '@nestjs/mongoose';
 import { HttpService } from '@nestjs/axios';
-import { ClientSession, Model } from 'mongoose';
-import { Observable, Subscriber } from 'rxjs';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { MessageStatus } from 'common/constants/agent';
+import { LoggerUtils } from 'common/utils/logger.utils';
+import { AgentDocument } from 'modules/agent/schemas/agent.schema';
+import { AgentConnectedService } from 'modules/agent/services/agent-connected.service';
+import { AgentService } from 'modules/agent/services/agent.service';
+import { AgentWebhookTriggerDto } from 'modules/message/dtos/agent-webhook-trigger.dto';
 import { CreateMessageDto } from 'modules/message/dtos/create-message.dto';
 import { ISSEData, ISSEMessage } from 'modules/message/message.interface';
 import { Message, MessageDocument } from 'modules/message/message.schema';
 import { ThreadService } from 'modules/thread/thread.service';
-import { AgentService } from 'modules/agent/services/agent.service';
-import { AgentConnectedService } from 'modules/agent/services/agent-connected.service';
-import { AgentDocument } from 'modules/agent/schemas/agent.schema';
-import { LoggerUtils } from 'common/utils/logger.utils';
-import { MessageStatus } from 'common/constants/agent';
-import { AgentWebhookTriggerDto } from 'modules/message/dtos/agent-webhook-trigger.dto';
-
+import { ClientSession, Model } from 'mongoose';
+import { Observable, Subscriber } from 'rxjs';
+import { RedisPubSubService } from 'common/base/redis-pubsub';
 @Injectable()
 export class MessageService {
   private readonly logger = LoggerUtils.get(MessageService.name);
@@ -24,9 +23,9 @@ export class MessageService {
     @InjectModel(Message.name) private messageModel: Model<MessageDocument>,
     private readonly threadService: ThreadService,
     private readonly agentService: AgentService,
-    private readonly eventEmitter: EventEmitter2,
     private readonly agentConnectedService: AgentConnectedService,
     private readonly httpService: HttpService,
+    private readonly redisPubSubService: RedisPubSubService,
   ) {}
 
   private async _sendMessageToAIAgent(
@@ -124,7 +123,7 @@ export class MessageService {
     message.answer = agentWebhookTriggerDto.answer;
     await message.save();
 
-    this.eventEmitter.emit(`message.${message._id}`, {
+    this.redisPubSubService.publish(`message.${message._id}`, {
       answer: agentWebhookTriggerDto.answer,
       status: MessageStatus.DONE,
     });
@@ -149,7 +148,7 @@ export class MessageService {
     message.answer = answer;
     await message.save();
 
-    this.eventEmitter.emit(`message.${message._id}`, {
+    this.redisPubSubService.publish(`message.${message._id}`, {
       answer,
       status: MessageStatus.CANCELLED,
     });
@@ -193,21 +192,22 @@ export class MessageService {
         this._streamAnswer(data.answer, subscriber);
       };
       // Subscribe to event
-      this.eventEmitter.on(`message.${messageId}`, listener);
+      this.redisPubSubService.subscribe(`message.${messageId}`, (data) => {
+        listener(data as unknown as ISSEData);
+      });
 
       initializeMessage();
 
       // Cleanup
       return () => {
         clearTimeout(timeoutId);
-        this.eventEmitter.removeListener(`message.${messageId}`, listener);
       };
     });
   }
 
   private _streamAnswer(answer: string, subscriber: Subscriber<ISSEMessage>) {
     const DELAY_TIME = 100;
-    const chars = answer.split('');
+    const chars = [...answer.split(''), 'DONE'];
     let index = 0;
 
     const streamInterval = setInterval(() => {
@@ -233,7 +233,7 @@ export class MessageService {
       answer,
     });
 
-    this.eventEmitter.emit(`message.${message._id}`, {
+    this.redisPubSubService.publish(`message.${message._id}`, {
       answer,
       status: MessageStatus.FAILED,
     });
