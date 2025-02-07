@@ -206,7 +206,7 @@ export class MessageService {
   }
 
   private _streamAnswer(answer: string, subscriber: Subscriber<ISSEMessage>) {
-    const DELAY_TIME = 100;
+    const DELAY_TIME = 5;
     const chars = [...answer.split(''), 'DONE'];
     let index = 0;
 
