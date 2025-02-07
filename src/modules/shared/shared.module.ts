@@ -10,6 +10,8 @@ import { Thread } from 'modules/thread/thread.schema';
 import { ThreadSchema } from 'modules/thread/thread.schema';
 import { MessageSchema } from 'modules/message/message.schema';
 import { Message } from 'modules/message/message.schema';
+import * as providers from 'modules/shared/providers';
+import { autoImport } from 'common/utils/common.utils';
 
 @Module({
   imports: [
@@ -56,7 +58,7 @@ import { Message } from 'modules/message/message.schema';
       { name: Message.name, schema: MessageSchema },
     ]),
   ],
-  providers: [],
-  exports: [ConfigModule, JwtModule, MongooseModule, CacheModule, HttpModule],
+  providers: [...autoImport(providers)],
+  exports: [ConfigModule, JwtModule, MongooseModule, CacheModule, HttpModule, ...autoImport(providers)],
 })
 export class SharedModule {}

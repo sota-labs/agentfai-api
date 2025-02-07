@@ -1,9 +1,9 @@
-import { HttpService } from '@nestjs/axios';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { ClientSession, Model } from 'mongoose';
+import { Observable, Subscriber } from 'rxjs';
 import { MessageStatus } from 'common/constants/agent';
 import { LoggerUtils } from 'common/utils/logger.utils';
-import { AgentDocument } from 'modules/agent/schemas/agent.schema';
 import { AgentConnectedService } from 'modules/agent/services/agent-connected.service';
 import { AgentService } from 'modules/agent/services/agent.service';
 import { AgentWebhookTriggerDto } from 'modules/message/dtos/agent-webhook-trigger.dto';
@@ -11,9 +11,9 @@ import { CreateMessageDto } from 'modules/message/dtos/create-message.dto';
 import { ISSEData, ISSEMessage } from 'modules/message/message.interface';
 import { Message, MessageDocument } from 'modules/message/message.schema';
 import { ThreadService } from 'modules/thread/thread.service';
-import { ClientSession, Model } from 'mongoose';
-import { Observable, Subscriber } from 'rxjs';
 import { RedisPubSubService } from 'common/base/redis-pubsub';
+import { ThirdAgentProvider } from 'modules/shared/providers';
+
 @Injectable()
 export class MessageService {
   private readonly logger = LoggerUtils.get(MessageService.name);
@@ -24,37 +24,9 @@ export class MessageService {
     private readonly threadService: ThreadService,
     private readonly agentService: AgentService,
     private readonly agentConnectedService: AgentConnectedService,
-    private readonly httpService: HttpService,
     private readonly redisPubSubService: RedisPubSubService,
+    private readonly thirdAgentProvider: ThirdAgentProvider,
   ) {}
-
-  private async _sendMessageToAIAgent(
-    agent: AgentDocument,
-    params: {
-      accessToken?: string;
-      message: string;
-      messageId: string;
-      threadId: string;
-    },
-  ): Promise<void> {
-    if (!params.accessToken) {
-      // TODO: update logic send to agent default
-      // Temporary by pass
-      return;
-    }
-
-    const body = {
-      content: params.message,
-      message_id: params.messageId,
-      thread_id: params.threadId,
-    };
-
-    const headers = params.accessToken ? { Authorization: `Bearer ${params.accessToken}` } : {};
-
-    const response = await this.httpService.axiosRef.post(`${agent.apiUrl}`, body, { headers });
-
-    this.logger.info(`Response from AI agent: ${JSON.stringify(response.data)}`);
-  }
 
   async findOne(messageId: string): Promise<MessageDocument> {
     return this.messageModel.findOne({ _id: messageId });
@@ -96,7 +68,8 @@ export class MessageService {
     await this.threadService.incrementTotalMessages(createMessageDto.threadId, agent.agentId, session);
 
     try {
-      await this._sendMessageToAIAgent(agent, {
+      await this.thirdAgentProvider.sendMessage({
+        agentApiUrl: agent.apiUrl,
         accessToken,
         message: createMessageDto.question,
         messageId: message._id.toString(),

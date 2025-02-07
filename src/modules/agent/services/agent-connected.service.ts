@@ -1,13 +1,12 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { JwtService } from '@nestjs/jwt';
-import { HttpService } from '@nestjs/axios';
-import { ConfigService } from '@nestjs/config';
 import { Model } from 'mongoose';
 import { AgentConnected, AgentConnectedDocument } from 'modules/agent/schemas/agent-connected.schema';
 import { AgentService } from 'modules/agent/services/agent.service';
 import { CryptoUtils } from 'common/utils/crypto.utils';
 import { LoggerUtils } from 'common/utils/logger.utils';
+import { OAuthProvider } from 'modules/shared/providers';
 
 @Injectable()
 export class AgentConnectedService {
@@ -17,40 +16,28 @@ export class AgentConnectedService {
     @InjectModel(AgentConnected.name) private agentConnectedModel: Model<AgentConnectedDocument>,
     private readonly jwtService: JwtService,
     private readonly agentService: AgentService,
-    private readonly configService: ConfigService,
-    private readonly httpService: HttpService,
+    private readonly oauthProvider: OAuthProvider,
   ) {}
 
   private async _refreshAccessToken(agentConnected: AgentConnectedDocument): Promise<string> {
     this.logger.info(`Refreshing access token for user ${agentConnected.userId} and agent ${agentConnected.agentId}`);
-    const baseUrl = this.configService.get('raidenx.oauth2Url');
-    const url = `${baseUrl}/api/v1/refresh-access-token`;
-
-    const body = {
-      clientId: CryptoUtils.decrypt(agentConnected.clientId),
-      clientSecret: CryptoUtils.decrypt(agentConnected.clientSecret),
-      refreshToken: CryptoUtils.decrypt(agentConnected.refreshToken),
-      accessToken: CryptoUtils.decrypt(agentConnected.accessToken),
-    };
 
     try {
-      const response = await this.httpService.axiosRef.post(url, body);
-      const newAccessToken = response.data.accessToken;
-      const newRefreshToken = response.data.refreshToken;
+      const { accessToken, refreshToken } = await this.oauthProvider.refreshAccessToken(agentConnected);
 
       // update agentConnected
       await this.agentConnectedModel.findOneAndUpdate(
         { userId: agentConnected.userId, agentId: agentConnected.agentId },
         {
           $set: {
-            accessToken: CryptoUtils.encrypt(newAccessToken),
-            refreshToken: CryptoUtils.encrypt(newRefreshToken),
-            accessTokenExpiresAt: this.jwtService.decode(newAccessToken)?.exp ?? 0,
+            accessToken: CryptoUtils.encrypt(accessToken),
+            refreshToken: CryptoUtils.encrypt(refreshToken),
+            accessTokenExpiresAt: this.jwtService.decode(accessToken)?.exp ?? 0,
           },
         },
       );
 
-      return newAccessToken;
+      return accessToken;
     } catch (error) {
       this.logger.error(`Error refreshing access token: ${error}`);
 
