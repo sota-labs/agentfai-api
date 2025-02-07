@@ -36,16 +36,17 @@ export class MessageService {
     let agent;
     let accessToken = null;
     if (createMessageDto.agentId) {
-      [agent, accessToken] = await Promise.all([
-        this.agentService.findOne(createMessageDto.agentId),
-        this.agentConnectedService.getAccessToken(userId, createMessageDto.agentId),
-      ]);
+      agent = await this.agentService.findOne(createMessageDto.agentId);
     } else {
       agent = await this.agentService.getAgentDefault();
     }
 
     if (!agent) {
       throw new BadRequestException('Agent not found');
+    }
+
+    if (agent.oauthRequired) {
+      accessToken = await this.agentConnectedService.getAccessToken(userId, agent.agentId);
     }
 
     if (!createMessageDto.threadId) {
