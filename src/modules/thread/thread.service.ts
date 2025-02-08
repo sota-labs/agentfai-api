@@ -88,6 +88,8 @@ export class ThreadService {
           role: 'assistant',
           content: message.answer,
           agentId: message.agentId,
+          createdAt: Math.floor(message.updatedAt.getTime() / 1000),
+          updatedAt: Math.floor(message.updatedAt.getTime() / 1000),
         });
       }
 
@@ -95,6 +97,8 @@ export class ThreadService {
         role: 'user',
         content: message.question,
         agentId: null,
+        createdAt: Math.floor(message.createdAt.getTime() / 1000),
+        updatedAt: Math.floor(message.createdAt.getTime() / 1000),
       });
     });
     return result;

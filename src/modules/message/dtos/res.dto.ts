@@ -62,4 +62,12 @@ export class MessageRoleResDto {
   @Expose()
   @ApiProperty({ type: String })
   agentId: string;
+
+  @Expose()
+  @ApiProperty({ type: Number, example: 1712256000 })
+  createdAt: number;
+
+  @Expose()
+  @ApiProperty({ type: Number, example: 1712256000 })
+  updatedAt: number;
 }
