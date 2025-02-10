@@ -166,7 +166,8 @@ export class MessageService {
         this._streamAnswer(data.answer, subscriber);
       };
       // Subscribe to event
-      this.redisPubSubService.subscribe(`message.${messageId}`, (data) => {
+      const channel = `message.${messageId}`;
+      this.redisPubSubService.subscribe(channel, (data) => {
         listener(data as unknown as ISSEData);
       });
 
@@ -175,12 +176,13 @@ export class MessageService {
       // Cleanup
       return () => {
         clearTimeout(timeoutId);
+        this.redisPubSubService.unsubscribe(channel);
       };
     });
   }
 
   private _streamAnswer(answer: string, subscriber: Subscriber<ISSEMessage>) {
-    const DELAY_TIME = 5;
+    const DELAY_TIME = 2;
     const chars = [...answer.split(''), 'DONE'];
     let index = 0;
 
