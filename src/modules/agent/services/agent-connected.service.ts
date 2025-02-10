@@ -7,6 +7,7 @@ import { AgentService } from 'modules/agent/services/agent.service';
 import { CryptoUtils } from 'common/utils/crypto.utils';
 import { LoggerUtils } from 'common/utils/logger.utils';
 import { OAuthProvider } from 'modules/shared/providers';
+import { RAIDENX_AGENT_ID } from 'modules/agent/agent.constants';
 
 @Injectable()
 export class AgentConnectedService {
@@ -96,5 +97,9 @@ export class AgentConnectedService {
     }
 
     return CryptoUtils.decrypt(agentConnected.accessToken);
+  }
+
+  async getAccessTokenFromRaidenX(userId: string): Promise<string> {
+    return this.getAccessToken(userId, RAIDENX_AGENT_ID);
   }
 }
