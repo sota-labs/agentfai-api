@@ -23,8 +23,8 @@ delete-stg:
 	pm2 delete agentfai
 
 start-prod:
-	npm i
-	npm run build
+	/home/ubuntu/.nvm/versions/node/v18.18.0/bin/npm i
+	/home/ubuntu/.nvm/versions/node/v18.18.0/bin/npm run build
 	pm2 reload deploy/prod/api.json --update-env
 
 stop-prod:
