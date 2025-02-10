@@ -13,7 +13,7 @@
     "name": "RaidenX",
     "description": "RaidenX Agent description",
     "logoUrl": "https://raidenx.io/logos/raidenx.png",
-    "apiUrl": "https://api-ai-agent.dextrade.bot/v1/chat/threads/messages",
+    "apiUrl": "http://localhost:4009/v1/chat/threads/messages",
     "apiKey": "your_api_key_here",
     "oauthRequired": true
   }
