@@ -2,6 +2,8 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { JwtService } from '@nestjs/jwt';
 import { Model } from 'mongoose';
+import { RedisService } from 'nestjs-redis';
+import * as Redis from 'ioredis';
 import { AgentConnected, AgentConnectedDocument } from 'modules/agent/schemas/agent-connected.schema';
 import { AgentService } from 'modules/agent/services/agent.service';
 import { CryptoUtils } from 'common/utils/crypto.utils';
@@ -12,15 +14,43 @@ import { RAIDENX_AGENT_ID } from 'modules/agent/agent.constants';
 @Injectable()
 export class AgentConnectedService {
   private readonly logger = LoggerUtils.get(AgentConnectedService.name);
+  private readonly redisClient: Redis.Redis;
 
   constructor(
     @InjectModel(AgentConnected.name) private agentConnectedModel: Model<AgentConnectedDocument>,
     private readonly jwtService: JwtService,
     private readonly agentService: AgentService,
     private readonly oauthProvider: OAuthProvider,
-  ) {}
+    private readonly redisService: RedisService,
+  ) {
+    this.redisClient = this.redisService.getClient();
+  }
 
-  private async _refreshAccessToken(agentConnected: AgentConnectedDocument): Promise<string> {
+  private async _getCacheKeyAccessToken(userId: string, agentId: string): Promise<string> {
+    return `agent:${userId}:${agentId}:accessToken`;
+  }
+
+  private async _getAccessToken(userId: string, agentId: string): Promise<{ accessToken: string; expiresAt: number }> {
+    const agentConnected = await this.agentConnectedModel.findOne({ userId, agentId });
+    if (!agentConnected) {
+      throw new BadRequestException('Agent not connected');
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    if (agentConnected.accessTokenExpiresAt < now) {
+      this.logger.info(`Access token expired for user ${userId} and agent ${agentId}`);
+      return this._refreshAccessToken(agentConnected);
+    }
+
+    return {
+      accessToken: CryptoUtils.decrypt(agentConnected.accessToken),
+      expiresAt: agentConnected.accessTokenExpiresAt,
+    };
+  }
+
+  private async _refreshAccessToken(
+    agentConnected: AgentConnectedDocument,
+  ): Promise<{ accessToken: string; expiresAt: number }> {
     this.logger.info(`Refreshing access token for user ${agentConnected.userId} and agent ${agentConnected.agentId}`);
 
     try {
@@ -38,7 +68,7 @@ export class AgentConnectedService {
         },
       );
 
-      return accessToken;
+      return { accessToken, expiresAt: this.jwtService.decode(accessToken)?.exp ?? 0 };
     } catch (error) {
       this.logger.error(`Error refreshing access token: ${error}`);
 
@@ -85,18 +115,16 @@ export class AgentConnectedService {
   }
 
   async getAccessToken(userId: string, agentId: string): Promise<string> {
-    const agentConnected = await this.agentConnectedModel.findOne({ userId, agentId });
-    if (!agentConnected) {
-      throw new BadRequestException('Agent not connected');
+    const cacheKey = await this._getCacheKeyAccessToken(userId, agentId);
+    const cachedAccessToken = await this.redisClient.get(cacheKey);
+    if (cachedAccessToken) {
+      return cachedAccessToken;
     }
 
-    const now = Math.floor(Date.now() / 1000);
-    if (agentConnected.accessTokenExpiresAt < now) {
-      this.logger.info(`Access token expired for user ${userId} and agent ${agentId}`);
-      return this._refreshAccessToken(agentConnected);
-    }
-
-    return CryptoUtils.decrypt(agentConnected.accessToken);
+    const { accessToken, expiresAt } = await this._getAccessToken(userId, agentId);
+    const expiresIn = Math.min(expiresAt - Math.floor(Date.now() / 1000), 3 * 60); // 3 minutes
+    await this.redisClient.set(cacheKey, accessToken, 'EX', expiresIn);
+    return accessToken;
   }
 
   async getAccessTokenFromRaidenX(userId: string): Promise<string> {
