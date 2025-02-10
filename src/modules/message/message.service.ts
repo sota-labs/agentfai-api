@@ -165,16 +165,18 @@ export class MessageService {
         clearTimeout(timeoutId); // Clear timeout when we get a response
         this._streamAnswer(data.answer, subscriber);
       };
-      // Subscribe to event
-      this.redisPubSubService.subscribe(`message.${messageId}`, (data) => {
-        listener(data as unknown as ISSEData);
-      });
+
+      // Subscribe and save unsubscribe function
+      const unsubscribe = this.redisPubSubService.subscribe(`message.${messageId}`, (data) =>
+        listener(data as unknown as ISSEData),
+      );
 
       initializeMessage();
 
-      // Cleanup
+      // Cleanup: clear timeout and unsubscribe
       return () => {
         clearTimeout(timeoutId);
+        unsubscribe(); // Call unsubscribe when Observable is completed
       };
     });
   }
