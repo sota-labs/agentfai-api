@@ -7,9 +7,14 @@ import { SharedModule } from 'modules/shared/shared.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from 'modules/auth/auth.module';
+import { ThreadModule } from 'modules/thread/thread.module';
+import { MessageModule } from 'modules/message/message.module';
+import { AgentModule } from 'modules/agent/agent.module';
+import { UserModule } from 'modules/user/user.module';
+import { RaidenxModule } from 'modules/raidenx/raidenx.module';
 
 @Module({
-  imports: [SharedModule, AuthModule],
+  imports: [SharedModule, AuthModule, ThreadModule, MessageModule, AgentModule, UserModule, RaidenxModule],
   controllers: [AppController],
   providers: [
     AppService,

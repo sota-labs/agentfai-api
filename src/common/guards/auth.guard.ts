@@ -4,7 +4,8 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { IS_PUBLIC_KEY } from 'common/decorators/public.decorator';
-import { IAuthUser } from 'common/interfaces/auth';
+import { IS_BACKEND_KEY } from 'common/decorators/backend.decorator';
+import { TAccessTokenPayload } from 'common/types/auth.type';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -24,6 +25,15 @@ export class AuthGuard implements CanActivate {
       return true;
     }
 
+    const isBackend = this.reflector.getAllAndOverride<boolean>(IS_BACKEND_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+
+    if (isBackend) {
+      return true;
+    }
+
     const request = context.switchToHttp().getRequest();
     const token = this.extractTokenFromHeader(request);
     if (!token) {
@@ -31,8 +41,8 @@ export class AuthGuard implements CanActivate {
     }
 
     try {
-      const payload: IAuthUser = await this.jwtService.verifyAsync(token, {
-        secret: this.configService.getOrThrow<string>('app.jwt.secret'),
+      const payload: TAccessTokenPayload = await this.jwtService.verifyAsync(token, {
+        secret: this.configService.getOrThrow<string>('auth.jwt.secret'),
       });
 
       request.user = payload;

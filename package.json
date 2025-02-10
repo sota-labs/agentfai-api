@@ -1,6 +1,6 @@
 {
   "name": "agentfai-api",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Agentfai API",
   "author": "",
   "private": true,
@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@mysten/sui": "^1.21.1",
+    "@nestjs/axios": "^3.0.0",
     "@nestjs/cache-manager": "^2.2.2",
     "@nestjs/common": "^10.0.0",
     "@nestjs/config": "^3.2.3",
@@ -38,6 +39,7 @@
     "canvas": "^2.11.2",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
+    "crypto-js": "^4.2.0",
     "express-basic-auth": "^1.2.1",
     "express-http-context": "^1.2.4",
     "google-auth-library": "^9.15.1",

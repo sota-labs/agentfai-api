@@ -4,7 +4,10 @@
   "sourceRoot": "src",
   "compilerOptions": {
     "deleteOutDir": true,
-    "assets": ["**/*.hbs", "**/*.png"]
+    "assets": [
+      "**/*.hbs",
+      "**/*.png"
+    ]
   },
   "projects": {
     "api": {
@@ -12,20 +15,10 @@
       "root": "src",
       "entryFile": "starters/api"
     },
-    "pair-tracker": {
+    "agent-seeder": {
       "type": "application",
       "root": "src",
-      "entryFile": "starters/pair-tracker.starter"
-    },
-    "wallet-tracker": {
-      "type": "application",
-      "root": "src",
-      "entryFile": "starters/wallet-tracker.starter"
-    },
-    "bull": {
-      "type": "application",
-      "root": "src",
-      "entryFile": "starters/bull.processor"
+      "entryFile": "starters/agent/agent.seeder"
     }
   }
 }

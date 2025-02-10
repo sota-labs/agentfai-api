@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { jwtToAddress } from '@mysten/sui/zklogin';
 import { ClientSession, Model } from 'mongoose';
 import { customAlphabet } from 'nanoid/non-secure';
-import { User, UserDocument } from './user.schema';
+import { User, UserDocument } from 'modules/user/schemas/user.schema';
 import { generateSalt } from 'common/utils/zklogin.utils';
 
 const customNanoId = customAlphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789abcdefghijklmnopqrstuvwxyz', 8);
@@ -12,15 +12,15 @@ const customNanoId = customAlphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789abcdefgh
 export class UserService {
   constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
 
-  async create(data: { idToken: string; sub: string }, session?: ClientSession): Promise<UserDocument> {
-    const { idToken, sub } = data;
+  async create(data: { idToken: string; sub: string; name?: string }, session?: ClientSession): Promise<UserDocument> {
+    const { idToken, sub, name } = data;
     const salt = generateSalt();
 
     const [user] = await this.userModel.create(
       [
         {
           userId: sub,
-          name: `User #${customNanoId(8)}`,
+          name: name ?? `User #${customNanoId(8)}`,
           salt,
           zkAddress: jwtToAddress(idToken, salt),
         },

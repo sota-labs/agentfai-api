@@ -1,0 +1,20 @@
+[
+  {
+    "agentId": "AgentFAI",
+    "name": "AgentFAI",
+    "description": "AgentFAI description",
+    "logoUrl": "https://storage.googleapis.com/raidenx-prod/logo/sui/0x16ab6a14d76a90328a6b04f06b0a0ce952847017023624e0c37bf8aa314c39ba::shr::SHR.png",
+    "apiUrl": "http://localhost:4012/v1/chat/threads/messages",
+    "apiKey": "ghfFaMMQtcwUswpMMOfCcwSZ01dcCfYA",
+    "oauthRequired": false
+  },
+  {
+    "agentId": "RaidenX",
+    "name": "RaidenX",
+    "description": "RaidenX Agent description",
+    "logoUrl": "https://raidenx.io/logos/raidenx.png",
+    "apiUrl": "http://localhost:4009/v1/chat/threads/messages",
+    "apiKey": "your_api_key_here",
+    "oauthRequired": true
+  }
+]

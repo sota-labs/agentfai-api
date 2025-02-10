@@ -1,12 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { TokenPayload } from 'google-auth-library';
-import { OauthGoogleService } from './oauth.google.service';
-import { LoginReqDto } from '../dtos/req.dto';
-import { LoginResDto } from '../dtos/res.dto';
+import { OauthGoogleService } from 'modules/auth/services/oauth.google.service';
+import { LoginReqDto } from 'modules/auth/dtos/req.dto';
+import { LoginResDto } from 'modules/auth/dtos/res.dto';
 import { LoggerUtils } from 'common/utils/logger.utils';
 import { TAccessTokenPayload, TLoginResponse } from 'common/types/auth.type';
-import { User } from 'modules/user/user.schema';
+import { User } from 'modules/user/schemas/user.schema';
 import { UserService } from 'modules/user/user.service';
 
 @Injectable()
@@ -17,10 +18,14 @@ export class AuthService {
     private readonly oauthGoogleService: OauthGoogleService,
     private readonly jwtService: JwtService,
     private readonly userService: UserService,
+    private readonly configService: ConfigService,
   ) {}
 
   private async _handleLoginResponse(user: User, payload: TAccessTokenPayload): Promise<TLoginResponse> {
-    const accessToken = await this.jwtService.signAsync({ userId: user.userId, ...payload });
+    const accessToken = await this.jwtService.signAsync(
+      { userId: user.userId, ...payload },
+      { expiresIn: this.configService.getOrThrow<string>('auth.jwt.expiresIn') },
+    );
     return {
       accessToken,
       salt: user.salt,
@@ -43,6 +48,7 @@ export class AuthService {
     const newUser = await this.userService.create({
       idToken,
       sub: payload.sub,
+      name: payload.name,
     });
 
     return newUser.toObject();
@@ -53,7 +59,11 @@ export class AuthService {
 
     const payload = await this._extractGGLoginPayload(body.idToken);
     const user = await this._constructUserToLogin({ idToken: body.idToken, payload });
-    const loginResponse = await this._handleLoginResponse(user, payload);
+    const loginResponse = await this._handleLoginResponse(user, {
+      userId: user.userId,
+      sub: payload.sub,
+      email: payload.email,
+    });
 
     return loginResponse;
   }

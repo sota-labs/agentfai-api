@@ -8,7 +8,7 @@ export type TGoogleUserInfo = {
 };
 
 export type TAccessTokenPayload = {
-  id?: string;
+  userId: string;
   sub: string;
   email?: string;
 };

@@ -3,9 +3,15 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { CacheModule } from '@nestjs/cache-manager';
+import { HttpModule } from '@nestjs/axios';
 import { RedisModule } from 'nestjs-redis';
 import config from 'config';
-import { DextradeModule } from './dextrade/dextrade.module';
+import { Thread } from 'modules/thread/thread.schema';
+import { ThreadSchema } from 'modules/thread/thread.schema';
+import { MessageSchema } from 'modules/message/message.schema';
+import { Message } from 'modules/message/message.schema';
+import * as providers from 'modules/shared/providers';
+import { autoImport } from 'common/utils/common.utils';
 
 @Module({
   imports: [
@@ -24,10 +30,15 @@ import { DextradeModule } from './dextrade/dextrade.module';
       },
       inject: [ConfigService],
     }),
+    HttpModule.register({
+      timeout: 10000,
+      maxRedirects: 5,
+    }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
-        secret: configService.getOrThrow<string>('app.jwt.secret'),
+        secret: configService.getOrThrow<string>('auth.jwt.secret'),
+        expiresIn: configService.getOrThrow<string>('auth.jwt.expiresIn'),
       }),
       inject: [ConfigService],
     }),
@@ -42,9 +53,12 @@ import { DextradeModule } from './dextrade/dextrade.module';
       }),
       inject: [ConfigService],
     }),
-    DextradeModule,
+    MongooseModule.forFeature([
+      { name: Thread.name, schema: ThreadSchema },
+      { name: Message.name, schema: MessageSchema },
+    ]),
   ],
-  providers: [],
-  exports: [ConfigModule, JwtModule, MongooseModule, CacheModule, DextradeModule],
+  providers: [...autoImport(providers)],
+  exports: [ConfigModule, JwtModule, MongooseModule, CacheModule, HttpModule, ...autoImport(providers)],
 })
 export class SharedModule {}
