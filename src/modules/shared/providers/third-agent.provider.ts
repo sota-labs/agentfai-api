@@ -18,11 +18,11 @@ export class ThirdAgentProvider extends BaseProvider {
     messageId: string;
     threadId: string;
   }): Promise<void> {
-    if (!params.accessToken) {
-      // TODO: update logic send to agent default
-      // Temporary by pass
-      return;
-    }
+    // if (!params.accessToken) {
+    //   // TODO: update logic send to agent default
+    //   // Temporary by pass
+    //   return;
+    // }
 
     const body = {
       content: params.message,
