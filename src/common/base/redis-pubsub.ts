@@ -10,6 +10,7 @@ export class RedisPubSubService implements OnModuleDestroy {
   constructor(redisService: RedisService) {
     this.publisher = redisService.getClient();
     this.subscriber = this.publisher.duplicate();
+    this.subscriber.setMaxListeners(20);
   }
 
   async publish<T>(channel: string, message: T): Promise<number> {
@@ -17,13 +18,20 @@ export class RedisPubSubService implements OnModuleDestroy {
     return this.publisher.publish(channel, messageString);
   }
 
-  async subscribe(channel: string, callback: (message: string) => void): Promise<void> {
-    await this.subscriber.subscribe(channel);
-    this.subscriber.on('message', (chan, msg) => {
+  subscribe(channel: string, callback: (message: any) => void): () => void {
+    const messageHandler = (chan: string, msg: string) => {
       if (chan === channel) {
         callback(JSON.parse(msg));
       }
-    });
+    };
+
+    this.subscriber.subscribe(channel);
+    this.subscriber.on('message', messageHandler);
+
+    return () => {
+      this.subscriber.removeListener('message', messageHandler);
+      this.subscriber.unsubscribe(channel);
+    };
   }
 
   onModuleDestroy() {

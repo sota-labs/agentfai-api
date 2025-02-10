@@ -162,19 +162,21 @@ export class MessageService {
 
       // Listen for event when message is updated
       const listener = (data: ISSEData) => {
-        clearTimeout(timeoutId); // Clear timeout when we get a response
+        clearTimeout(timeoutId);
         this._streamAnswer(data.answer, subscriber);
       };
-      // Subscribe to event
-      this.redisPubSubService.subscribe(`message.${messageId}`, (data) => {
-        listener(data as unknown as ISSEData);
-      });
+
+      // Subscribe và lưu hàm unsubscribe
+      const unsubscribe = this.redisPubSubService.subscribe(`message.${messageId}`, (data) =>
+        listener(data as unknown as ISSEData),
+      );
 
       initializeMessage();
 
-      // Cleanup
+      // Cleanup: clear timeout và unsubscribe
       return () => {
         clearTimeout(timeoutId);
+        unsubscribe(); // Gọi hàm unsubscribe khi Observable kết thúc
       };
     });
   }
