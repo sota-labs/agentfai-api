@@ -1,15 +1,19 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { LoggerUtils } from 'common/utils/logger.utils';
 import Redis from 'ioredis';
 import { RedisService } from 'nestjs-redis';
 
 @Injectable()
 export class RedisPubSubService implements OnModuleDestroy {
+  private readonly logger = LoggerUtils.get(RedisPubSubService.name);
   private publisher: Redis;
   private subscriber: Redis;
+  private readonly MAX_LISTENERS = 1000;
 
   constructor(redisService: RedisService) {
     this.publisher = redisService.getClient();
     this.subscriber = this.publisher.duplicate();
+    this.subscriber.setMaxListeners(this.MAX_LISTENERS);
   }
 
   publish<T>(channel: string, message: T): Promise<number> {
@@ -17,7 +21,13 @@ export class RedisPubSubService implements OnModuleDestroy {
     return this.publisher.publish(channel, messageString);
   }
 
+  unsubscribe(channel: string): void {
+    this.logger.info(`Unsubscribing from channel: ${channel}`);
+    this.subscriber.unsubscribe(channel);
+  }
+
   subscribe(channel: string, callback: (message: any) => void): () => void {
+    this.logger.info(`Subscribing to channel: ${channel}`);
     const messageHandler = (chan: string, msg: string) => {
       if (chan === channel) {
         callback(JSON.parse(msg));
@@ -29,7 +39,7 @@ export class RedisPubSubService implements OnModuleDestroy {
 
     return () => {
       this.subscriber.removeListener('message', messageHandler);
-      this.subscriber.unsubscribe(channel);
+      this.unsubscribe(channel);
     };
   }
 
