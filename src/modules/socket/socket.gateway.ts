@@ -23,9 +23,8 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (token) {
       try {
         const { userId }: any = jwtDecode(token);
-        this.logger.info(`User payload.sub connected: ${client.id}`);
+        this.logger.info(`ClientId ${client.id} connected room: userId_${userId}`);
         client.join(`user_room_${userId}`);
-        this.logger.info(`UserId connected room: user_room_${userId}`);
       } catch (e) {
         this.logger.info(`Failed to decode access token for client ${client.id}`);
       }
