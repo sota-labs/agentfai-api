@@ -28,6 +28,6 @@ export class SocketEmitterService {
   }
 
   public emitActionWebhookTrigger(userId: string, payload: { action: EAgentAction; agentId: string }): void {
-    this.emitter.to(`user_room_${userId}`).emit('agent_action_trigger', payload);
+    this.emitter.to(`userId_${userId}`).emit('agent_action_trigger', payload);
   }
 }
