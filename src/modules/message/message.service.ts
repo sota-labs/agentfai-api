@@ -13,6 +13,7 @@ import { Message, MessageDocument } from 'modules/message/message.schema';
 import { ThreadService } from 'modules/thread/thread.service';
 import { RedisPubSubService } from 'common/base/redis-pubsub';
 import { ThirdAgentProvider } from 'modules/shared/providers';
+import { SocketEmitterService } from 'modules/socket/socket-emitter.service';
 
 @Injectable()
 export class MessageService {
@@ -26,6 +27,7 @@ export class MessageService {
     private readonly agentConnectedService: AgentConnectedService,
     private readonly redisPubSubService: RedisPubSubService,
     private readonly thirdAgentProvider: ThirdAgentProvider,
+    private readonly socketEmitterService: SocketEmitterService,
   ) {}
 
   async findOne(messageId: string): Promise<MessageDocument> {
@@ -96,6 +98,13 @@ export class MessageService {
     message.status = MessageStatus.DONE;
     message.answer = agentWebhookTriggerDto.answer;
     await message.save();
+
+    if (agentWebhookTriggerDto.action) {
+      this.socketEmitterService.emitActionWebhookTrigger(message.userId, {
+        action: agentWebhookTriggerDto.action,
+        agentId: message.agentId,
+      });
+    }
 
     this.redisPubSubService.publish(`message.${message._id}`, {
       answer: agentWebhookTriggerDto.answer,

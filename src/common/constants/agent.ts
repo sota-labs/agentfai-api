@@ -11,3 +11,9 @@ export enum ThreadStatus {
   HIDDEN = 'hidden',
   DELETED = 'deleted',
 }
+
+export enum EAgentAction {
+  BUY = 'buy',
+  SELL = 'sell',
+  NONE = 'none',
+}

@@ -9,9 +9,14 @@ import { ConfigService } from '@nestjs/config';
 import { AppModule } from '../app.module';
 import { OpenAPIUtils } from 'common/utils/open-api';
 import { AllExceptionsFilter } from 'common/filters/all-exception.filter';
+import { RedisIoAdapter } from 'common/base/redis-adapter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const redisIoAdapter: RedisIoAdapter = new RedisIoAdapter(app);
+  await redisIoAdapter.connectToRedis();
+  app.useWebSocketAdapter(redisIoAdapter);
+
   app.use(httpContext.middleware);
   app.enableCors();
   app.useGlobalPipes(
