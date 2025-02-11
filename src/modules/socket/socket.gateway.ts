@@ -1,35 +1,56 @@
+import { Injectable } from '@nestjs/common';
 import { OnGatewayConnection, OnGatewayDisconnect, WebSocketGateway } from '@nestjs/websockets';
-import { LoggerUtils } from 'common/utils/logger.utils';
-import { jwtDecode } from 'jwt-decode';
+import { JwtService } from '@nestjs/jwt';
 import { Socket } from 'socket.io';
+import { LoggerUtils } from 'common/utils/logger.utils';
 
+@Injectable()
 @WebSocketGateway({
-  cors: {
-    origin: ['*'],
-    methods: ['GET', 'POST'],
-    credentials: true,
-  },
+  transports: ['websocket', 'polling'],
 })
 export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private readonly logger = LoggerUtils.get(SocketGateway.name);
+
+  constructor(private readonly jwtService: JwtService) {}
 
   async handleDisconnect(client: Socket): Promise<void> {
     this.logger.info(`Client disconnected: ${client.id}`);
   }
 
   async handleConnection(client: Socket): Promise<void> {
-    const token = client.handshake.auth.token;
+    const token = this._extractTokenFromSocket(client);
 
     if (token) {
       try {
-        const { userId }: any = jwtDecode(token);
-        this.logger.info(`ClientId ${client.id} connected room: userId_${userId}`);
-        client.join(`user_room_${userId}`);
+        const { userId }: any = this.jwtService.verify(token);
+
+        const room = this._selfRoom(userId);
+        this.logger.info(`ClientId ${client.id} connected room: ${room}`);
+        client.join(room);
       } catch (e) {
         this.logger.info(`Failed to decode access token for client ${client.id}`);
       }
     } else {
       this.logger.info(`Guest connected: ${client.id}`);
     }
+  }
+
+  private _selfRoom(userId: string): string {
+    return `USER::${userId}`;
+  }
+
+  private _extractTokenFromSocket(client: Socket): string | undefined {
+    const authHeader =
+      client.handshake.query?.authorization ||
+      client.handshake.headers['authorization'] ||
+      client.handshake.auth['authorization'];
+
+    if (typeof authHeader !== 'string') {
+      return undefined;
+    }
+
+    // Handle Bearer token format
+    const [type, token] = authHeader.split(' ');
+    return type === 'Bearer' ? token : authHeader;
   }
 }

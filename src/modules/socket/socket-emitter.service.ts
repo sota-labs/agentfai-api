@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Emitter } from '@socket.io/redis-emitter';
-import { createClient, RedisClientType } from 'redis';
 import { ConfigService } from '@nestjs/config';
+import { createClient, RedisClientType } from 'redis';
 import { LoggerUtils } from 'common/utils/logger.utils';
 import { EAgentAction } from 'common/constants/agent';
 
@@ -28,6 +28,6 @@ export class SocketEmitterService {
   }
 
   public emitActionWebhookTrigger(userId: string, payload: { action: EAgentAction; agentId: string }): void {
-    this.emitter.to(`userId_${userId}`).emit('agent_action_trigger', payload);
+    this.emitter.to(`USER::${userId}`).emit('agent_action_trigger', payload);
   }
 }
