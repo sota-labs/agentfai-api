@@ -11,6 +11,7 @@ const AppConfig = registerAs(appRegToken, () => ({
   crypto: {
     secretKey: process.env.CRYPTO_SECRET_KEY || 'VERvizMry2DfC4QZiICzatwFwftJgvYC',
   },
+  fullnodeSuiUrl: process.env.FULLNODE_SUI_URL,
 }));
 
 if (!Object.values(ENetwork).includes(network as ENetwork)) {
