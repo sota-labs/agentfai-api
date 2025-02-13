@@ -1,6 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Exclude, Expose, Transform, Type } from 'class-transformer';
-import { BasePaginationResDto } from 'common/dtos/paginate.dto';
 
 @Exclude()
 export class CoinMetadataDto {
@@ -108,12 +107,22 @@ export class CoinPortfolio {
   coinMetadata: CoinMetadataDto;
 }
 
-@Exclude()
-export class PaginatedCoinMetadataResDto extends BasePaginationResDto<CoinPortfolio> {
+export class ListCoinMetadataResDto {
   @Expose()
   @ApiProperty({
     type: [CoinPortfolio],
   })
-  @Type(() => CoinPortfolio)
   docs: CoinPortfolio[];
+
+  @Expose()
+  @ApiProperty({
+    type: String,
+  })
+  nextCursor: string;
+
+  @Expose()
+  @ApiProperty({
+    type: Boolean,
+  })
+  hasNextPage: boolean;
 }

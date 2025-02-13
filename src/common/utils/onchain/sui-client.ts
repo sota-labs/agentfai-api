@@ -8,50 +8,47 @@ export const suiClient = new SuiClient({
   url: fullnodeSuiUrl ?? getFullnodeUrl('mainnet'),
 });
 
-export async function getOwnerCoinOnchain(
-  walletAddress: string,
-  tokenAddress: string,
-): Promise<[(CoinStruct & { owner: string })[], BigNumber]> {
-  const client = suiClient;
+export class SuiClientUtils {
+  static async getOwnerCoinOnchain(
+    walletAddress: string,
+    tokenAddress: string,
+  ): Promise<[(CoinStruct & { owner: string })[], BigNumber]> {
+    const client = suiClient;
 
-  const coins = await client.getCoins({
-    owner: walletAddress,
-    coinType: tokenAddress,
-  });
-  return [
-    coins.data.map((coin) => ({ ...coin, owner: walletAddress })),
-    coins.data.reduce((prev, coinStruct) => BigNumber(coinStruct.balance).plus(prev), BigNumber(0)),
-  ];
-}
+    const coins = await client.getCoins({
+      owner: walletAddress,
+      coinType: tokenAddress,
+    });
+    return [
+      coins.data.map((coin) => ({ ...coin, owner: walletAddress })),
+      coins.data.reduce((prev, coinStruct) => BigNumber(coinStruct.balance).plus(prev), BigNumber(0)),
+    ];
+  }
 
-export async function getAllCoins(walletAddress: string): Promise<{
-  data: CoinStruct[];
-  hasNextPage: boolean;
-  nextCursor?: string;
-}> {
-  const client = suiClient;
+  static async getAllCoinsByWalletAddress(
+    walletAddress: string,
+    options?: { nextCursor?: string; limit?: number },
+  ): Promise<{
+    data: CoinStruct[];
+    hasNextPage: boolean;
+    nextCursor?: string;
+  }> {
+    const client = suiClient;
 
-  const coins = await client.getAllCoins({
-    owner: walletAddress,
-  });
+    return await client.getAllCoins({
+      owner: walletAddress,
+      cursor: options?.nextCursor ?? null,
+      limit: options?.limit ? Math.min(options.limit, 50) : 50,
+    });
+  }
 
-  const uniqueCoins = coins.data.filter(
-    (value, index, self) => self.findIndex((t) => t.coinType === value.coinType) === index,
-  );
+  static async getCoinMetadata(coinType: string): Promise<CoinMetadata> {
+    const client = suiClient;
 
-  return {
-    data: uniqueCoins,
-    hasNextPage: coins.hasNextPage,
-    nextCursor: coins.nextCursor,
-  };
-}
+    const coin = await client.getCoinMetadata({
+      coinType,
+    });
 
-export async function getCoinMetadata(coinType: string): Promise<CoinMetadata> {
-  const client = suiClient;
-
-  const coin = await client.getCoinMetadata({
-    coinType,
-  });
-
-  return coin;
+    return coin;
+  }
 }

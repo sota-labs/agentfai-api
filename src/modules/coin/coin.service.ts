@@ -1,82 +1,78 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { CoinMetadata, CoinMetadataDocument } from './schemas/coin-metadata';
 import { PaginateModel } from 'mongoose';
-import { getAllCoins, getCoinMetadata } from 'common/utils/onchain/sui-client';
-import { IPagination } from 'common/decorators/paginate.decorator';
-import { PaginatedCoinMetadataResDto } from './dto/res';
+import { ListCoinMetadataResDto } from 'modules/coin/dto/res';
 import { TokenUtils } from 'common/utils/token.utils';
+import { sortTrick } from 'common/utils/common.utils';
+import { CoinMetadata, CoinMetadataDocument } from 'modules/coin/schemas/coin-metadata';
+import { LoggerUtils } from 'common/utils/logger.utils';
+import { SuiClientUtils } from 'common/utils/onchain/sui-client';
 
 @Injectable()
 export class CoinService {
+  private readonly logger = LoggerUtils.get(CoinService.name);
+
   constructor(
     @InjectModel(CoinMetadata.name) private readonly coinMetadataModel: PaginateModel<CoinMetadataDocument>,
   ) {}
 
-  async getPortfolio(walletAddress: string, paginate: IPagination): Promise<PaginatedCoinMetadataResDto> {
-    const allCoins = await getAllCoins(walletAddress);
+  async getPortfolio(
+    walletAddress: string,
+    options?: { nextCursor?: string; limit?: number },
+  ): Promise<ListCoinMetadataResDto> {
+    this.logger.info(`Getting portfolio for wallet ${walletAddress} with options ${JSON.stringify(options)}`);
+    const coins = await SuiClientUtils.getAllCoinsByWalletAddress(walletAddress, options);
+    this.logger.info(`Found ${coins.data.length} coins for wallet ${walletAddress}`);
 
-    const allCoinsMetadata = await this.coinMetadataModel.find().select('-_id -__v -createdAt -updatedAt');
+    const manyCoinsMetadata = await this.getCoinMetadata(coins.data.map((coin) => coin.coinType));
 
-    const result = await Promise.all(
-      allCoins.data.map(async (coin) => {
-        const coinMetadata = allCoinsMetadata.find((coinMetadata) => coinMetadata.tokenAddress === coin.coinType);
-        if (!coinMetadata) {
-          const { decimals, name, symbol, description, iconUrl } = await getCoinMetadata(coin.coinType);
-          const balance = TokenUtils.toTokenAmount(coin.balance, decimals);
-          await this.coinMetadataModel.create({
-            tokenAddress: coin.coinType,
-            decimals,
-            name,
-            symbol,
-            description,
-            logoUrl: iconUrl,
-          });
-          return {
-            ...coin,
-            balance,
-            coinMetadata: {
-              tokenAddress: coin.coinType,
-              decimals,
-              name,
-              symbol,
-              description,
-              logoUrl: iconUrl,
-            },
-          };
-        }
+    const data = coins.data.map((coin, index) => {
+      const coinMetadata = manyCoinsMetadata[index];
+      return {
+        ...coin,
+        balance: TokenUtils.toTokenAmount(coin.balance, coinMetadata.decimals),
+        coinMetadata,
+      };
+    });
 
-        const balance = TokenUtils.toTokenAmount(coin.balance, coinMetadata.decimals);
+    return {
+      docs: data,
+      hasNextPage: coins.hasNextPage,
+      nextCursor: coins.nextCursor,
+    };
+  }
+
+  async getCoinMetadata(tokenAddresses: string[]): Promise<CoinMetadata[]> {
+    const coins = await this.coinMetadataModel
+      .find({ tokenAddress: { $in: tokenAddresses } })
+      .select('-_id -__v -createdAt -updatedAt');
+
+    const missingTokenAddresses = tokenAddresses.filter(
+      (tokenAddress) => !coins.find((coin) => coin.tokenAddress === tokenAddress),
+    );
+
+    // Get missing coins metadata from onchain
+    const missingCoinsMetadata: CoinMetadata[] = await Promise.all(
+      missingTokenAddresses.map(async (tokenAddress) => {
+        const { decimals, name, symbol, description, iconUrl } = await SuiClientUtils.getCoinMetadata(tokenAddress);
         return {
-          ...coin,
-          balance,
-          coinMetadata,
+          tokenAddress,
+          decimals,
+          name,
+          symbol,
+          description,
+          logoUrl: iconUrl,
         };
       }),
     );
 
-    return this.paginate(result, paginate);
-  }
+    // save missing coins metadata to db
+    if (missingCoinsMetadata.length > 0) {
+      this.logger.info(`Saving ${missingCoinsMetadata.length} missing coins metadata to db`);
+      await this.coinMetadataModel.create(missingCoinsMetadata);
+    }
 
-  private paginate(
-    arr: any[],
-    paginate: IPagination,
-  ): {
-    docs: any[];
-    totalDocs: number;
-    limit: number;
-    page: number;
-    totalPages: number;
-  } {
-    const start = (paginate.page - 1) * paginate.limit;
-    const end = paginate.page * paginate.limit;
-
-    return {
-      docs: arr.slice(start, end),
-      totalDocs: arr.length,
-      limit: paginate.limit,
-      page: paginate.page,
-      totalPages: Math.ceil(arr.length / paginate.limit),
-    };
+    const allCoinsMetadata = [...coins, ...missingCoinsMetadata];
+    return sortTrick(allCoinsMetadata, tokenAddresses, 'tokenAddress');
   }
 }
