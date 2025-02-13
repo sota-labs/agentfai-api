@@ -61,7 +61,7 @@ export class CoinService {
           name,
           symbol,
           description,
-          logoUrl: iconUrl,
+          iconUrl: iconUrl,
         };
       }),
     );

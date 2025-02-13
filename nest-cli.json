@@ -19,6 +19,11 @@
       "type": "application",
       "root": "src",
       "entryFile": "starters/agent/agent.seeder"
+    },
+    "test": {
+      "type": "application",
+      "root": "src",
+      "entryFile": "starters/test.starter"
     }
   }
 }

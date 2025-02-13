@@ -22,7 +22,7 @@ export class CoinMetadata {
   description: string;
 
   @Prop()
-  logoUrl: string;
+  iconUrl: string;
 }
 
 export const CoinMetadataSchema = SchemaFactory.createForClass(CoinMetadata);

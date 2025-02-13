@@ -47,7 +47,7 @@ export class CoinMetadataDto {
   })
   @Type(() => String)
   @Transform(({ value }) => value?.toString())
-  logoUrl: string;
+  iconUrl: string;
 }
 
 @Exclude()
