@@ -42,26 +42,24 @@ export class CoinService {
     };
   }
 
-  async getCoinMetadata(tokenAddresses: string[]): Promise<CoinMetadata[]> {
+  async getCoinMetadata(addresses: string[]): Promise<CoinMetadata[]> {
     const coins = await this.coinMetadataModel
-      .find({ tokenAddress: { $in: tokenAddresses } })
+      .find({ address: { $in: addresses } })
       .select('-_id -__v -createdAt -updatedAt');
 
-    const missingTokenAddresses = tokenAddresses.filter(
-      (tokenAddress) => !coins.find((coin) => coin.tokenAddress === tokenAddress),
-    );
+    const missingAddresses = addresses.filter((address) => !coins.find((coin) => coin.address === address));
 
     // Get missing coins metadata from onchain
     const missingCoinsMetadata: CoinMetadata[] = await Promise.all(
-      missingTokenAddresses.map(async (tokenAddress) => {
-        const { decimals, name, symbol, description, iconUrl } = await SuiClientUtils.getCoinMetadata(tokenAddress);
+      missingAddresses.map(async (address) => {
+        const { decimals, name, symbol, description, iconUrl } = await SuiClientUtils.getCoinMetadata(address);
         return {
-          tokenAddress,
+          address,
           decimals,
           name,
           symbol,
           description,
-          logoUrl: iconUrl,
+          iconUrl: iconUrl,
         };
       }),
     );
@@ -73,6 +71,6 @@ export class CoinService {
     }
 
     const allCoinsMetadata = [...coins, ...missingCoinsMetadata];
-    return sortTrick(allCoinsMetadata, tokenAddresses, 'tokenAddress');
+    return sortTrick(allCoinsMetadata, addresses, 'address');
   }
 }

@@ -13,9 +13,20 @@ import { AgentModule } from 'modules/agent/agent.module';
 import { UserModule } from 'modules/user/user.module';
 import { RaidenxModule } from 'modules/raidenx/raidenx.module';
 import { CoinModule } from 'modules/coin/coin.module';
+import { TxModule } from 'modules/tx/tx.module';
 
 @Module({
-  imports: [SharedModule, AuthModule, ThreadModule, MessageModule, AgentModule, UserModule, RaidenxModule, CoinModule],
+  imports: [
+    SharedModule,
+    AuthModule,
+    ThreadModule,
+    MessageModule,
+    AgentModule,
+    UserModule,
+    RaidenxModule,
+    CoinModule,
+    TxModule,
+  ],
   controllers: [AppController],
   providers: [
     AppService,

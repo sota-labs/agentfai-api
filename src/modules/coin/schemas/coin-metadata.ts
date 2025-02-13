@@ -7,7 +7,7 @@ export type CoinMetadataDocument = CoinMetadata & Document;
 @Schema({ timestamps: true, collection: 'coin-metadata' })
 export class CoinMetadata {
   @Prop({ required: true })
-  tokenAddress: string;
+  address: string;
 
   @Prop({ required: true })
   decimals: number;
@@ -22,9 +22,9 @@ export class CoinMetadata {
   description: string;
 
   @Prop()
-  logoUrl: string;
+  iconUrl: string;
 }
 
 export const CoinMetadataSchema = SchemaFactory.createForClass(CoinMetadata);
-CoinMetadataSchema.index({ tokenAddress: 1 }, { unique: true });
+CoinMetadataSchema.index({ address: 1 }, { unique: true });
 CoinMetadataSchema.plugin(MongoosePaginate);
