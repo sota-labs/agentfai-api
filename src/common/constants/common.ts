@@ -5,4 +5,6 @@ export const SUI_TOKEN_METADATA = {
   decimals: 9,
   symbol: 'SUI',
   name: 'SUI',
+  description: 'SUI is a blockchain platform that allows users to create and manage decentralized applications.',
+  iconUrl: null,
 };

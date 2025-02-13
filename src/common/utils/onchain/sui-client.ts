@@ -1,9 +1,9 @@
 import { CoinMetadata, CoinStruct, getFullnodeUrl, GetObjectParams, SuiClient } from '@mysten/sui/client';
+import { Transaction } from '@mysten/sui/transactions';
 import BigNumber from 'bignumber.js';
 import retry from 'async-retry';
 import AppConfig from 'config/app.config';
 import { sleep } from 'common/utils/time.utils';
-import { SignatureWithBytes } from '@mysten/sui/dist/cjs/cryptography';
 
 const { fullnodeSuiUrl } = AppConfig();
 
@@ -190,16 +190,19 @@ export class SuiClientUtils {
     );
   }
 
-  static async extractTransactionData(signature: SignatureWithBytes) {
-    const tx = await suiClient.executeTransactionBlock({
-      transactionBlock: signature.bytes,
-      signature: signature.signature,
+  static async executeTransaction(txData: string, signature: string) {
+    const tx = Transaction.from(txData);
+    const bytes = Buffer.from(await tx.build({ client: suiClient })).toString('base64');
+
+    const txResult = await suiClient.executeTransactionBlock({
+      transactionBlock: bytes,
+      signature: signature,
       options: {
         showEffects: true,
         showEvents: true,
         showObjectChanges: true,
       },
     });
-    return tx;
+    return txResult;
   }
 }

@@ -9,7 +9,7 @@ export class CoinMetadataDto {
   })
   @Type(() => String)
   @Transform(({ value }) => value?.toString())
-  tokenAddress: string;
+  address: string;
 
   @Expose()
   @ApiProperty({
