@@ -13,7 +13,7 @@ import { AgentModule } from 'modules/agent/agent.module';
 import { UserModule } from 'modules/user/user.module';
 import { RaidenxModule } from 'modules/raidenx/raidenx.module';
 import { CoinModule } from 'modules/coin/coin.module';
-import { TxModule } from 'modules/tx/tx.module';
+import { OrderModule } from 'modules/order/order.module';
 
 @Module({
   imports: [
@@ -25,7 +25,7 @@ import { TxModule } from 'modules/tx/tx.module';
     UserModule,
     RaidenxModule,
     CoinModule,
-    TxModule,
+    OrderModule,
   ],
   controllers: [AppController],
   providers: [

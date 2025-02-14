@@ -3,7 +3,7 @@ import { Exclude, Expose } from 'class-transformer';
 import { IsNotEmpty, IsNumberString, IsOptional, IsString } from 'class-validator';
 
 @Exclude()
-export class TxBuyReqDto {
+export class OrderBuyReqDto {
   @Expose()
   @ApiProperty({ required: false })
   @IsOptional()
@@ -26,7 +26,7 @@ export class TxBuyReqDto {
 }
 
 @Exclude()
-export class TxBuyBackendReqDto extends TxBuyReqDto {
+export class OrderBuyBackendReqDto extends OrderBuyReqDto {
   @Expose()
   @ApiProperty({ required: true })
   @IsString()
@@ -40,12 +40,12 @@ export class TxBuyBackendReqDto extends TxBuyReqDto {
   walletAddress: string;
 }
 
-export class ExecuteTxBuyReqDto {
+export class ExecuteOrderBuyReqDto {
   @Expose()
   @ApiProperty({ required: true })
   @IsString()
   @IsNotEmpty()
-  txRequestId: string;
+  orderRequestId: string;
 
   @Expose()
   @ApiProperty({ required: true })

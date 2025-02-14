@@ -11,15 +11,15 @@ import { CoinService } from 'modules/coin/coin.service';
 import { CoinMetadata } from 'modules/coin/schemas/coin-metadata';
 import { SocketEmitterService } from 'modules/socket/socket-emitter.service';
 import { SocketEvent } from 'modules/socket/socket.constant';
-import { TxResDto } from 'modules/tx/dtos/res.dto';
-import { TxBuy, TxBuyDocument, TxBuyStatus } from 'modules/tx/schemas/tx-buy.schema';
+import { OrderResDto } from 'modules/order/dtos/res.dto';
+import { OrderBuy, OrderBuyDocument, OrderBuyStatus } from 'modules/order/schemas/order-buy.schema';
 import { UserService } from 'modules/user/user.service';
 import { ClientSession, Model } from 'mongoose';
 @Injectable()
-export class TxService {
-  private readonly logger = LoggerUtils.get(TxService.name);
+export class OrderService {
+  private readonly logger = LoggerUtils.get(OrderService.name);
   constructor(
-    @InjectModel(TxBuy.name) private readonly txBuyModel: Model<TxBuyDocument>,
+    @InjectModel(OrderBuy.name) private readonly orderBuyModel: Model<OrderBuyDocument>,
     private readonly coinService: CoinService,
     private readonly userService: UserService,
     @Inject(forwardRef(() => SocketEmitterService))
@@ -44,7 +44,7 @@ export class TxService {
       amountIn: string;
     },
     session: ClientSession,
-  ): Promise<TxResDto> {
+  ): Promise<OrderResDto> {
     const user = await this.userService.getUserById(userId, session);
 
     return this.buy(
@@ -66,7 +66,7 @@ export class TxService {
       userId: string;
     },
     session: ClientSession,
-  ): Promise<TxResDto> {
+  ): Promise<OrderResDto> {
     const tokenIn = await this._getTokenIn(params.tokenIn);
     const exactAmountIn = new BigNumber(params.amountIn).times(10 ** tokenIn.decimals).toString();
 
@@ -75,7 +75,7 @@ export class TxService {
     // TODO: check if user has enough balance
     // TODO: select dex to build transaction
 
-    const buyTx = await CetusDexUtils.buildBuyTransaction({
+    const buyOrder = await CetusDexUtils.buildBuyTransaction({
       walletAddress: params.walletAddress,
       exactAmountIn,
       gasBasePrice: await SuiClientUtils.getReferenceGasPrice(),
@@ -83,9 +83,9 @@ export class TxService {
       tokenIn,
     });
 
-    const txData = await buyTx.toJSON();
+    const txData = await buyOrder.toJSON();
 
-    const [txBuy] = await this.txBuyModel.create(
+    const [orderBuy] = await this.orderBuyModel.create(
       [
         {
           userId: params.userId,
@@ -96,42 +96,42 @@ export class TxService {
           txHash: null,
           txData,
           timestamp: TimeUtils.nowInSeconds(),
-          status: TxBuyStatus.PENDING,
+          status: OrderBuyStatus.PENDING,
         },
       ],
       { session },
     );
 
     const res = {
-      requestId: txBuy._id.toString(),
+      requestId: orderBuy._id.toString(),
       txData,
     };
 
-    this.socketEmitterService.emit(SocketEvent.TX_BUY_REQUEST, res);
+    this.socketEmitterService.emit(SocketEvent.ORDER_BUY_REQUEST, res);
 
     return res;
   }
 
-  async executeTxBuy(txRequestId: string, signature: string, session: ClientSession): Promise<string> {
-    const txBuyRequest = await this.txBuyModel.findById({ _id: txRequestId }, null, { session });
-    if (!txBuyRequest) {
-      throw new Error('TxBuyRequest not found');
+  async executeOrderBuy(orderRequestId: string, signature: string, session: ClientSession): Promise<string> {
+    const orderBuyRequest = await this.orderBuyModel.findById({ _id: orderRequestId }, null, { session });
+    if (!orderBuyRequest) {
+      throw new Error('OrderBuyRequest not found');
     }
 
-    const txResult = await SuiClientUtils.executeTransaction(txBuyRequest.txData, signature);
+    const txResult = await SuiClientUtils.executeTransaction(orderBuyRequest.txData, signature);
     const txHash = txResult.digest;
     const errors = txResult.errors;
     this.logger.info(`Tx buy executed: ${txHash}`);
 
-    let status = TxBuyStatus.SUCCESS;
+    let status = OrderBuyStatus.SUCCESS;
     if (errors && errors.length > 0) {
-      status = TxBuyStatus.FAILED;
+      status = OrderBuyStatus.FAILED;
     }
 
-    await this.txBuyModel.findByIdAndUpdate({ _id: txRequestId }, { txHash, status }, { session });
+    await this.orderBuyModel.findByIdAndUpdate({ _id: orderRequestId }, { txHash, status }, { session });
     // TODO: emit event success or failed to client by socket
-    this.socketEmitterService.emitToUser(txBuyRequest.userId, SocketEvent.TX_BUY_RESULT, {
-      txRequestId,
+    this.socketEmitterService.emitToUser(orderBuyRequest.userId, SocketEvent.ORDER_BUY_RESULT, {
+      orderRequestId,
       txHash,
       status,
     });
@@ -139,13 +139,13 @@ export class TxService {
     return txHash;
   }
 
-  async getBuyByUserId(userId: string, requestId: string): Promise<TxBuyDocument> {
+  async getBuyByUserId(userId: string, requestId: string): Promise<OrderBuyDocument> {
     const user = await this.userService.getUserById(userId);
-    const txBuyRequest = await this.txBuyModel.findOne({ _id: requestId, walletAddress: user.zkAddress });
-    if (!txBuyRequest) {
-      throw new NotFoundException('TxBuyRequest not found');
+    const orderBuyRequest = await this.orderBuyModel.findOne({ _id: requestId, walletAddress: user.zkAddress });
+    if (!orderBuyRequest) {
+      throw new NotFoundException('OrderBuyRequest not found');
     }
 
-    return txBuyRequest;
+    return orderBuyRequest;
   }
 }

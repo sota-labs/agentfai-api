@@ -3,7 +3,7 @@ import { Exclude, Expose, Transform, Type } from 'class-transformer';
 import { CoinMetadata } from 'modules/coin/schemas/coin-metadata';
 
 @Exclude()
-export class TxResDto {
+export class OrderResDto {
   @Expose()
   @ApiProperty({ required: true, description: 'Request ID' })
   requestId: string;
@@ -14,14 +14,14 @@ export class TxResDto {
 }
 
 @Exclude()
-export class ExecuteTxBuyResDto {
+export class ExecuteOrderBuyResDto {
   @Expose()
   @ApiProperty({ required: true, description: 'Transaction hash' })
   txHash: string;
 }
 
 @Exclude()
-export class TxBuyResDto {
+export class OrderBuyResDto {
   @Expose()
   @ApiProperty({ required: true, description: 'Request ID' })
   requestId: string;
