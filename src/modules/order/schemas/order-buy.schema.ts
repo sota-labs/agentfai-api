@@ -26,6 +26,9 @@ export class OrderBuy {
   @Prop({ required: true })
   amountIn: Decimal128;
 
+  @Prop()
+  slippage: number;
+
   @Prop({ required: true })
   tokenIn: CoinMetadata;
 
@@ -43,5 +46,5 @@ export class OrderBuy {
 }
 
 export const OrderBuySchema = SchemaFactory.createForClass(OrderBuy);
-OrderBuySchema.index({ txHash: 1 }, { unique: true });
+OrderBuySchema.index({ txHash: 1 }, { unique: true, partialFilterExpression: { txHash: { $exists: true } } });
 OrderBuySchema.plugin(MongoosePaginate);

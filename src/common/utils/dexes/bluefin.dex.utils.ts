@@ -2,17 +2,28 @@ import { normalizeStructTag } from '@mysten/sui/utils';
 import { Transaction } from '@mysten/sui/transactions';
 import { CoinStruct } from '@mysten/sui/client';
 import BigNumber from 'bignumber.js';
-import { BaseDexUtils } from 'common/utils/dexes/base.dex.utils';
+import { BaseDexUtils, IDexUtils } from 'common/utils/dexes/base.dex.utils';
 import { TCoinMetadata } from 'common/types/coin.type';
 import { SUI_TOKEN_METADATA } from 'common/constants/common';
 import { SUI_ADDRESS, SUI_TOKEN_ADDRESS_SHORT } from 'common/constants/address';
 import { SuiClientUtils } from 'common/utils/onchain/sui-client';
 import raidenxConfig from 'config/raidenx.config';
+import { TSwapParams } from 'common/types/dex.type';
 
 const { dexes } = raidenxConfig();
 
-export class BluefinDexUtils extends BaseDexUtils {
-  static async buildBuyTransaction(params: {
+export class BluefinDexUtils extends BaseDexUtils implements IDexUtils {
+  async buildBuyParams(params: TSwapParams): Promise<any> {
+    console.log(params);
+    throw new Error('Method not implemented.');
+  }
+
+  async buildSellParams(params: TSwapParams): Promise<any> {
+    console.log(params);
+    throw new Error('Method not implemented.');
+  }
+
+  async buildBuyTransaction(params: {
     walletAddress: string;
     exactAmountIn: BigNumber | string | number;
     gasBasePrice: bigint;
@@ -90,7 +101,7 @@ export class BluefinDexUtils extends BaseDexUtils {
     return tx;
   }
 
-  static async buildSellTransaction(params: {
+  async buildSellTransaction(params: {
     walletAddress: string;
     exactAmountIn: BigNumber;
     tokenIn: TCoinMetadata;

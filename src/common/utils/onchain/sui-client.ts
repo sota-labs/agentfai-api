@@ -1,9 +1,18 @@
-import { CoinMetadata, CoinStruct, getFullnodeUrl, GetObjectParams, SuiClient } from '@mysten/sui/client';
+import {
+  CoinMetadata,
+  CoinStruct,
+  DryRunTransactionBlockResponse,
+  getFullnodeUrl,
+  GetObjectParams,
+  SuiClient,
+} from '@mysten/sui/client';
 import { Transaction } from '@mysten/sui/transactions';
 import BigNumber from 'bignumber.js';
 import retry from 'async-retry';
 import AppConfig from 'config/app.config';
 import { sleep } from 'common/utils/time.utils';
+import { ROUTER_SELL_EVENT } from 'common/constants/dex';
+import { ROUTER_BUY_EVENT } from 'common/constants/dex';
 
 const { fullnodeSuiUrl } = AppConfig();
 
@@ -14,6 +23,12 @@ export const suiClient = new SuiClient({
 export const RETRY_MAX_ATTEMPT = 5;
 export const RETRY_MIN_TIMEOUT = 1000;
 export const RETRY_MAX_TIMEOUT = 5000;
+
+export interface RouterSwapEvent {
+  amount_in: string;
+  amount_out: string;
+  recipient: string;
+}
 
 export class SuiClientUtils {
   static getSuiClient(attempt: number) {
@@ -204,5 +219,38 @@ export class SuiClientUtils {
       },
     });
     return txResult;
+  }
+
+  static extractTokenAmount(simulateResponse: DryRunTransactionBlockResponse): {
+    amountOut: string;
+    amountIn: string;
+  } {
+    if (simulateResponse.effects.status.status === 'failure') {
+      console.error('Transaction simulation failed: ', simulateResponse);
+      return {
+        amountOut: '0',
+        amountIn: '0',
+      };
+    }
+
+    const swapEvent = simulateResponse.events.find(
+      (event) => event.type.includes(ROUTER_BUY_EVENT) || event.type.includes(ROUTER_SELL_EVENT),
+    );
+
+    if (!swapEvent) {
+      throw new Error('Swap event not found');
+    }
+
+    const swapData = swapEvent.parsedJson as RouterSwapEvent;
+    const [amountIn, amountOut] = [swapData.amount_in, swapData.amount_out];
+
+    if (!amountOut || !amountIn) {
+      throw new Error('Amount out or amount in is not found');
+    }
+
+    return {
+      amountOut: amountOut,
+      amountIn: amountIn,
+    };
   }
 }

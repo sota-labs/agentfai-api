@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Exclude, Expose } from 'class-transformer';
-import { IsNotEmpty, IsNumberString, IsOptional, IsString } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsNumberString, IsOptional, IsString, Max, Min } from 'class-validator';
 
 @Exclude()
 export class OrderBuyReqDto {
@@ -23,6 +23,13 @@ export class OrderBuyReqDto {
   @IsNotEmpty()
   @IsNumberString()
   amountIn: string;
+
+  @Expose()
+  @ApiProperty({ required: true })
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  slippage: number;
 }
 
 @Exclude()

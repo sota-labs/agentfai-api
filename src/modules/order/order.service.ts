@@ -1,20 +1,21 @@
 import { Inject, Injectable, NotFoundException, forwardRef } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import BigNumber from 'bignumber.js';
 import { Decimal128 } from 'bson';
-import { SUI_TOKEN_METADATA } from 'common/constants/common';
-import { CetusDexUtils } from 'common/utils/dexes/cetus.dex.utils';
+import { ClientSession, Model } from 'mongoose';
 import { LoggerUtils } from 'common/utils/logger.utils';
 import { SuiClientUtils } from 'common/utils/onchain/sui-client';
 import { TimeUtils } from 'common/utils/time.utils';
 import { CoinService } from 'modules/coin/coin.service';
-import { CoinMetadata } from 'modules/coin/schemas/coin-metadata';
 import { SocketEmitterService } from 'modules/socket/socket-emitter.service';
 import { SocketEvent } from 'modules/socket/socket.constant';
 import { OrderResDto } from 'modules/order/dtos/res.dto';
 import { OrderBuy, OrderBuyDocument, OrderBuyStatus } from 'modules/order/schemas/order-buy.schema';
 import { UserService } from 'modules/user/user.service';
-import { ClientSession, Model } from 'mongoose';
+import { RaidenxProvider } from 'modules/shared/providers';
+import { TCoinMetadata } from 'common/types/coin.type';
+import { FactoryDexUtils } from 'common/utils/dexes/factory.dex.utils';
+import { EDex } from 'common/constants/dex';
+
 @Injectable()
 export class OrderService {
   private readonly logger = LoggerUtils.get(OrderService.name);
@@ -24,17 +25,8 @@ export class OrderService {
     private readonly userService: UserService,
     @Inject(forwardRef(() => SocketEmitterService))
     private readonly socketEmitterService: SocketEmitterService,
+    private readonly raidenxProvider: RaidenxProvider,
   ) {}
-
-  private async _getTokenIn(tokenIn?: string): Promise<CoinMetadata> {
-    this.logger.info(`Getting token in: ${tokenIn}`);
-    if (!tokenIn) {
-      return SUI_TOKEN_METADATA;
-    }
-
-    // TODO: Get token in from coin service
-    throw new Error('Not implemented');
-  }
 
   async buyByUserId(
     userId: string,
@@ -42,6 +34,7 @@ export class OrderService {
       tokenIn?: string;
       poolId: string;
       amountIn: string;
+      slippage: number;
     },
     session: ClientSession,
   ): Promise<OrderResDto> {
@@ -63,27 +56,43 @@ export class OrderService {
       tokenIn?: string;
       poolId: string;
       amountIn: string;
+      slippage: number;
       userId: string;
     },
     session: ClientSession,
   ): Promise<OrderResDto> {
-    const tokenIn = await this._getTokenIn(params.tokenIn);
-    const exactAmountIn = new BigNumber(params.amountIn).times(10 ** tokenIn.decimals).toString();
+    const poolInfo = await this.raidenxProvider.common.getPoolInfo(params.poolId);
+    if (!poolInfo) {
+      throw new NotFoundException('Pool not found');
+    }
 
-    // TODO: get pool info from raidenx
-    // TODO: check if pool is valid
-    // TODO: check if user has enough balance
-    // TODO: select dex to build transaction
+    const tokenIn: TCoinMetadata = {
+      address: poolInfo.tokenQuote.address,
+      decimals: poolInfo.tokenQuote.decimals,
+      name: poolInfo.tokenQuote.name,
+      symbol: poolInfo.tokenQuote.symbol,
+    };
 
-    const buyOrder = await CetusDexUtils.buildBuyTransaction({
+    const tokenOut: TCoinMetadata = {
+      address: poolInfo.tokenBase.address,
+      decimals: poolInfo.tokenBase.decimals,
+      name: poolInfo.tokenBase.name,
+      symbol: poolInfo.tokenBase.symbol,
+    };
+
+    const dexInstance = FactoryDexUtils.getDexInstance(poolInfo.dex.dex as EDex);
+    const txBuyParams = await dexInstance.buildBuyParams({
       walletAddress: params.walletAddress,
-      exactAmountIn,
-      gasBasePrice: await SuiClientUtils.getReferenceGasPrice(),
-      poolObjectId: params.poolId,
       tokenIn,
+      tokenOut,
+      poolId: params.poolId,
+      amountIn: params.amountIn,
+      slippage: params.slippage ?? 100,
     });
 
-    const txData = await buyOrder.toJSON();
+    const txBuy = await dexInstance.buildBuyTransaction(txBuyParams);
+
+    const txData = await txBuy.toJSON();
 
     const [orderBuy] = await this.orderBuyModel.create(
       [
@@ -92,8 +101,8 @@ export class OrderService {
           walletAddress: params.walletAddress,
           poolId: params.poolId,
           amountIn: new Decimal128(params.amountIn),
+          slippage: params.slippage,
           tokenIn,
-          txHash: null,
           txData,
           timestamp: TimeUtils.nowInSeconds(),
           status: OrderBuyStatus.PENDING,

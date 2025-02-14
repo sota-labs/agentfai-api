@@ -1,12 +1,13 @@
 import { Transaction } from '@mysten/sui/transactions';
 import { CoinStruct } from '@mysten/sui/client';
 import BigNumber from 'bignumber.js';
-import { BaseDexUtils } from 'common/utils/dexes/base.dex.utils';
+import { BaseDexUtils, IDexUtils } from 'common/utils/dexes/base.dex.utils';
 import { TCoinMetadata } from 'common/types/coin.type';
 import raidenxConfig from 'config/raidenx.config';
 import { SUI_ADDRESS, SUI_TOKEN_ADDRESS_SHORT } from 'common/constants/address';
 import { SuiClientUtils } from 'common/utils/onchain/sui-client';
 import { SUI_TOKEN_METADATA } from 'common/constants/common';
+import { TSwapParams } from 'common/types/dex.type';
 
 const { dexes } = raidenxConfig();
 
@@ -16,8 +17,18 @@ const SHARE_OBJECT_CONFIG_CETUS = '0xdaa46292632c3c4d8f31f23ea0f9b36a28ff3677e96
 const POOL_SUIAI_SUI_OBJECT_ID = '0x7852612f5bf73613021f17353985fc186b3b224139c6a2576239132ba5a33b66';
 const SHARE_OBJECT_CONFIG_SUIAI = '0xd9b810f0d1f4c024dd7190bac834de764cb09054246f86981cb63d36ae51bf5c';
 
-export class SuiAiDexUtils extends BaseDexUtils {
-  static async buildBuyBySuiToken(params: {
+export class SuiAiDexUtils extends BaseDexUtils implements IDexUtils {
+  async buildBuyParams(params: TSwapParams): Promise<any> {
+    console.log(params);
+    throw new Error('Method not implemented.');
+  }
+
+  async buildSellParams(params: TSwapParams): Promise<any> {
+    console.log(params);
+    throw new Error('Method not implemented.');
+  }
+
+  async buildBuyBySuiToken(params: {
     walletAddress: string;
     exactAmountIn: BigNumber | string | number;
     tokenOut: TCoinMetadata;
@@ -62,7 +73,7 @@ export class SuiAiDexUtils extends BaseDexUtils {
     return tx;
   }
 
-  static async buildBuyTransaction(params: {
+  async buildBuyTransaction(params: {
     walletAddress: string;
     exactAmountIn: BigNumber | string | number;
     tokenOut: TCoinMetadata;
@@ -136,7 +147,7 @@ export class SuiAiDexUtils extends BaseDexUtils {
     return tx;
   }
 
-  static async buildSellTransaction(params: {
+  async buildSellTransaction(params: {
     walletAddress: string;
     exactAmountIn: BigNumber;
     tokenIn: TCoinMetadata;
