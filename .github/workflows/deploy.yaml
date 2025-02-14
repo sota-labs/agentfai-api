@@ -12,7 +12,7 @@ on:
 
 jobs:
   dockerize:
-    runs-on: sota-labs-self-hosted
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Set up Docker Buildx
@@ -32,7 +32,7 @@ jobs:
           tags: ${{ vars.HARBOR_HOST }}/{{ var.HARBOR_PROJECT }}:${{ github.sha }}
 
   deploy_gke:
-    runs-on: sota-labs-self-hosted
+    runs-on: ubuntu-latest
     env:
       CICD_TOKEN: ${{ secrets.CICD_TOKEN }}
       IMAGE_TAG: ${{ github.sha }}
