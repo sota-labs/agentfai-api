@@ -2,7 +2,7 @@ FROM node:22.9.0-alpine AS builder
 WORKDIR /app
 COPY . .
 RUN apk add g++ make py3-pip
-RUN npm ci
+RUN npm i
 RUN npm run build
 RUN npm prune --production
 RUN wget https://gobinaries.com/tj/node-prune && sh node-prune && node-prune

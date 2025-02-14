@@ -36,7 +36,7 @@
     "bignumber.js": "^9.1.2",
     "bull": "^4.16.4",
     "cache-manager": "^5.7.6",
-    "canvas": "^2.11.2",
+    "canvas": "^3.1.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "crypto-js": "^4.2.0",
