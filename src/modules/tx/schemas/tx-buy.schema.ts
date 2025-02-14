@@ -18,6 +18,9 @@ export class TxBuy {
   walletAddress: string;
 
   @Prop({ required: true })
+  userId: string;
+
+  @Prop({ required: true })
   poolId: string;
 
   @Prop({ required: true })

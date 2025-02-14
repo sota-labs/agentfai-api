@@ -1,0 +1,5 @@
+export enum SocketEvent {
+  TX_SIGNATURE = 'TX_SIGNATURE',
+  TX_BUY_REQUEST = 'TX_BUY_REQUEST',
+  TX_BUY_RESULT = 'TX_BUY_RESULT',
+}
