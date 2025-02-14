@@ -1,13 +1,13 @@
-import { Inject, forwardRef, Injectable } from '@nestjs/common';
-import { OnGatewayConnection, OnGatewayDisconnect, SubscribeMessage, WebSocketGateway } from '@nestjs/websockets';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { Socket } from 'socket.io';
-import { LoggerUtils } from 'common/utils/logger.utils';
-import { SocketEvent } from 'modules/socket/socket.constant';
-import { TxService } from 'modules/tx/tx.service';
-import { Connection } from 'mongoose';
 import { InjectConnection } from '@nestjs/mongoose';
+import { OnGatewayConnection, OnGatewayDisconnect, SubscribeMessage, WebSocketGateway } from '@nestjs/websockets';
+import { LoggerUtils } from 'common/utils/logger.utils';
 import { MongoUtils } from 'common/utils/mongo.utils';
+import { OrderService } from 'modules/order/order.service';
+import { SocketEvent } from 'modules/socket/socket.constant';
+import { Connection } from 'mongoose';
+import { Socket } from 'socket.io';
 @Injectable()
 @WebSocketGateway({
   transports: ['websocket', 'polling'],
@@ -17,8 +17,8 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   constructor(
     private readonly jwtService: JwtService,
-    @Inject(forwardRef(() => TxService))
-    private readonly txService: TxService,
+    @Inject(forwardRef(() => OrderService))
+    private readonly orderService: OrderService,
     @InjectConnection()
     private readonly connection: Connection,
   ) {}
@@ -64,11 +64,11 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return type === 'Bearer' ? token : authHeader;
   }
 
-  @SubscribeMessage(SocketEvent.TX_SIGNATURE)
-  async handleTxSignature(data: { txRequestId: string; signature: string }): Promise<void> {
-    this.logger.info(`Tx signature: ${data}`);
+  @SubscribeMessage(SocketEvent.ORDER_SIGNATURE)
+  async handleOrderSignature(data: { orderRequestId: string; signature: string }): Promise<void> {
+    this.logger.info(`Order signature: ${data}`);
     await MongoUtils.withTransaction(this.connection, async (session) => {
-      await this.txService.executeTxBuy(data.txRequestId, data.signature, session);
+      await this.orderService.executeOrderBuy(data.orderRequestId, data.signature, session);
     });
   }
 }

@@ -1,0 +1,27 @@
+import { Module, forwardRef } from '@nestjs/common';
+import { MongooseModule } from '@nestjs/mongoose';
+import { AgentModule } from 'modules/agent/agent.module';
+import { CoinModule } from 'modules/coin/coin.module';
+import { OrderBackendController } from 'modules/order/order.backend.controller';
+import { OrderController } from 'modules/order/order.controller';
+import { OrderService } from 'modules/order/order.service';
+import { OrderBuy, OrderBuySchema } from 'modules/order/schemas/order-buy.schema';
+import { SharedModule } from 'modules/shared/shared.module';
+import { SocketEmitterService } from 'modules/socket/socket-emitter.service';
+import { SocketModule } from 'modules/socket/socket.module';
+import { UserModule } from 'modules/user/user.module';
+
+@Module({
+  imports: [
+    SharedModule,
+    CoinModule,
+    AgentModule,
+    UserModule,
+    MongooseModule.forFeature([{ name: OrderBuy.name, schema: OrderBuySchema }]),
+    forwardRef(() => SocketModule),
+  ],
+  controllers: [OrderController, OrderBackendController],
+  providers: [OrderService, SocketEmitterService],
+  exports: [OrderService],
+})
+export class OrderModule {}

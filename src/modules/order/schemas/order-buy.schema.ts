@@ -4,16 +4,16 @@ import { Document } from 'mongoose';
 import { Decimal128 } from 'bson';
 import MongoosePaginate from 'mongoose-paginate-v2';
 
-export enum TxBuyStatus {
+export enum OrderBuyStatus {
   PENDING = 'pending',
   SUCCESS = 'success',
   FAILED = 'failed',
 }
 
-export type TxBuyDocument = TxBuy & Document;
+export type OrderBuyDocument = OrderBuy & Document;
 
-@Schema({ timestamps: true, collection: 'tx-buy' })
-export class TxBuy {
+@Schema({ timestamps: true, collection: 'order-buy' })
+export class OrderBuy {
   @Prop({ required: true })
   walletAddress: string;
 
@@ -42,6 +42,6 @@ export class TxBuy {
   status: string;
 }
 
-export const TxBuySchema = SchemaFactory.createForClass(TxBuy);
-TxBuySchema.index({ txHash: 1 }, { unique: true });
-TxBuySchema.plugin(MongoosePaginate);
+export const OrderBuySchema = SchemaFactory.createForClass(OrderBuy);
+OrderBuySchema.index({ txHash: 1 }, { unique: true });
+OrderBuySchema.plugin(MongoosePaginate);
