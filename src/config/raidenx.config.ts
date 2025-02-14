@@ -31,6 +31,7 @@ const RaidenxConfig = registerAs(raidenxRegToken, () => ({
       module: 'move_pump_router',
       feeObjectId: '0x04bb2e8a0e4710b8bf8124b1057653036dcac7060094e19a046ec9232f70b319',
       configObjectId: '0xd746495d04a6119987c2b9334c5fefd7d8cff52a8a02a3ea4e3995b9a041ace4',
+      dexObjectId: '0x3f2d9f724f4a1ce5e71676448dc452be9a6243dac9c5b975a588c8c867066e92',
       fee: 0.005,
       tradingFee: 0.01,
     },
@@ -65,6 +66,7 @@ const RaidenxConfig = registerAs(raidenxRegToken, () => ({
       module: 'suiai_router',
       feeObjectId: '',
       configObjectId: '0xd9b810f0d1f4c024dd7190bac834de764cb09054246f86981cb63d36ae51bf5c',
+      configObjectIdSui: '0x2c84cf1031e454c5787308bcd87c3b14ba26296316880d79698d5cb49a5b0b68',
     },
   },
 }));
