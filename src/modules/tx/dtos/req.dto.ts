@@ -31,6 +31,12 @@ export class TxBuyBackendReqDto extends TxBuyReqDto {
   @ApiProperty({ required: true })
   @IsString()
   @IsNotEmpty()
+  userId: string;
+
+  @Expose()
+  @ApiProperty({ required: true })
+  @IsString()
+  @IsNotEmpty()
   walletAddress: string;
 }
 

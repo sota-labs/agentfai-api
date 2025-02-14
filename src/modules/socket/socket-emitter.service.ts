@@ -27,6 +27,10 @@ export class SocketEmitterService {
     this.emitter.emit(event, data);
   }
 
+  public emitToUser<T>(userId: string, event: string, data: T): void {
+    this.emitter.to(`USER::${userId}`).emit(event, data);
+  }
+
   public emitActionWebhookTrigger(userId: string, payload: { action: EAgentAction; agentId: string }): void {
     this.emitter.to(`USER::${userId}`).emit('agent_action_trigger', payload);
   }
