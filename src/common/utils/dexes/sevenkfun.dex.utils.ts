@@ -1,14 +1,25 @@
 import { Transaction } from '@mysten/sui/transactions';
 import { CoinStruct } from '@mysten/sui/client';
 import BigNumber from 'bignumber.js';
-import { BaseDexUtils } from 'common/utils/dexes/base.dex.utils';
+import { BaseDexUtils, IDexUtils } from 'common/utils/dexes/base.dex.utils';
 import { TCoinMetadata } from 'common/types/coin.type';
 import raidenxConfig from 'config/raidenx.config';
+import { TSwapParams } from 'common/types/dex.type';
 
 const { dexes } = raidenxConfig();
 
-export class SevenkfunDexUtils extends BaseDexUtils {
-  static async buildBuyTransaction(params: {
+export class SevenkfunDexUtils extends BaseDexUtils implements IDexUtils {
+  async buildBuyParams(params: TSwapParams): Promise<any> {
+    console.log(params);
+    throw new Error('Method not implemented.');
+  }
+
+  async buildSellParams(params: TSwapParams): Promise<any> {
+    console.log(params);
+    throw new Error('Method not implemented.');
+  }
+
+  async buildBuyTransaction(params: {
     walletAddress: string;
     exactAmountIn: BigNumber | string | number;
     tokenOut: TCoinMetadata;
@@ -44,7 +55,7 @@ export class SevenkfunDexUtils extends BaseDexUtils {
     return tx;
   }
 
-  static async buildSellTransaction(params: {
+  async buildSellTransaction(params: {
     walletAddress: string;
     exactAmountIn: BigNumber | string | number;
     tokenIn: TCoinMetadata;

@@ -2,13 +2,24 @@ import { Transaction } from '@mysten/sui/transactions';
 import { CoinStruct } from '@mysten/sui/client';
 import BigNumber from 'bignumber.js';
 import { TCoinMetadata } from 'common/types/coin.type';
-import { BaseDexUtils } from 'common/utils/dexes/base.dex.utils';
+import { BaseDexUtils, IDexUtils } from 'common/utils/dexes/base.dex.utils';
 import raidenxConfig from 'config/raidenx.config';
+import { TSwapParams } from 'common/types/dex.type';
 
 const { dexes } = raidenxConfig();
 
-export class TurbosFunDexUtils extends BaseDexUtils {
-  static async buildBuyTransaction(params: {
+export class TurbosFunDexUtils extends BaseDexUtils implements IDexUtils {
+  async buildBuyParams(params: TSwapParams): Promise<any> {
+    console.log(params);
+    throw new Error('Method not implemented.');
+  }
+
+  async buildSellParams(params: TSwapParams): Promise<any> {
+    console.log(params);
+    throw new Error('Method not implemented.');
+  }
+
+  async buildBuyTransaction(params: {
     walletAddress: string;
     exactAmountIn: BigNumber | string | number;
     tokenOut: TCoinMetadata;
@@ -43,7 +54,7 @@ export class TurbosFunDexUtils extends BaseDexUtils {
     return tx;
   }
 
-  static async buildSellTransaction(params: {
+  async buildSellTransaction(params: {
     walletAddress: string;
     exactAmountIn: BigNumber | string | number;
     tokenIn: TCoinMetadata;

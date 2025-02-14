@@ -6,11 +6,20 @@ import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import raidenxConfig from 'config/raidenx.config';
 import { SuiClientUtils } from 'common/utils/onchain/sui-client';
 import { SUI_TOKEN_ADDRESS_SHORT } from 'common/constants/address';
+import { TSwapParams } from 'common/types/dex.type';
 
 const { sponsorAddress } = raidenxConfig();
 
+export interface IDexUtils {
+  buildBuyParams(params: TSwapParams): Promise<any>;
+  buildBuyTransaction(params: any): Promise<Transaction>;
+
+  buildSellParams(params: TSwapParams): Promise<any>;
+  buildSellTransaction(params: any): Promise<Transaction>;
+}
+
 export class BaseDexUtils {
-  static async buildSponsoredTransaction(tx: Transaction) {
+  async buildSponsoredTransaction(tx: Transaction) {
     const coins = await SuiClientUtils.getOwnerCoinsOnchain(sponsorAddress);
     const suiCoins = coins.filter(
       (coin) => normalizeStructTag(coin.coinType) === normalizeStructTag(SUI_TOKEN_ADDRESS_SHORT),
@@ -29,7 +38,7 @@ export class BaseDexUtils {
     return tx;
   }
 
-  static extractTokenX2YFromPoolType(poolType: string): { tokenXAddress?: string; tokenYAddress?: string } {
+  extractTokenX2YFromPoolType(poolType: string): { tokenXAddress?: string; tokenYAddress?: string } {
     const match = poolType.match(/<(.+)>/);
     if (!match) return {};
 
@@ -42,7 +51,7 @@ export class BaseDexUtils {
     };
   }
 
-  static async createUserSignature(
+  async createUserSignature(
     txBlock: Transaction,
     ephemeralPrivateKey: string,
     client: SuiClient,

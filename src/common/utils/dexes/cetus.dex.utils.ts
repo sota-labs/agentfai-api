@@ -2,24 +2,118 @@ import { normalizeStructTag } from '@mysten/sui/utils';
 import { Transaction } from '@mysten/sui/transactions';
 import { CoinStruct } from '@mysten/sui/client';
 import BigNumber from 'bignumber.js';
-import { BaseDexUtils } from 'common/utils/dexes/base.dex.utils';
+import { BaseDexUtils, IDexUtils } from 'common/utils/dexes/base.dex.utils';
 import { SUI_ADDRESS, SUI_TOKEN_ADDRESS_SHORT } from 'common/constants/address';
 import { TCoinMetadata } from 'common/types/coin.type';
 import { SUI_TOKEN_METADATA } from 'common/constants/common';
-import { SuiClientUtils } from 'common/utils/onchain/sui-client';
+import { suiClient, SuiClientUtils } from 'common/utils/onchain/sui-client';
 import raidenxConfig from 'config/raidenx.config';
+import { TSwapParams } from 'common/types/dex.type';
 
 const { dexes } = raidenxConfig();
 
-export class CetusDexUtils extends BaseDexUtils {
-  static async buildBuyTransaction(params: {
-    walletAddress: string;
-    exactAmountIn: BigNumber | string | number;
-    gasBasePrice: bigint;
-    poolObjectId: string;
-    tokenIn?: TCoinMetadata;
-  }): Promise<Transaction> {
-    const { walletAddress, exactAmountIn, gasBasePrice, poolObjectId, tokenIn = SUI_TOKEN_METADATA } = params;
+interface IBuyParams {
+  walletAddress: string;
+  exactAmountIn: BigNumber | string | number;
+  minAmountOut: BigNumber | string | number;
+  gasBasePrice: bigint;
+  poolObjectId: string;
+  tokenIn?: TCoinMetadata;
+  orderId?: string;
+}
+
+interface ISellParams {
+  walletAddress: string;
+  exactAmountIn: BigNumber | string | number;
+  minAmountOut: BigNumber | string | number;
+  tokenIn: TCoinMetadata;
+  gasBasePrice: bigint;
+  coinObjs: (CoinStruct & { owner: string })[];
+  poolObjectId: string;
+  orderId?: string;
+}
+
+export class CetusDexUtils extends BaseDexUtils implements IDexUtils {
+  async buildSimulateBuyParams(params: TSwapParams): Promise<IBuyParams> {
+    const exactAmountIn = new BigNumber(params.amountIn).multipliedBy(10 ** params.tokenIn.decimals);
+    return {
+      walletAddress: params.walletAddress,
+      exactAmountIn: exactAmountIn,
+      minAmountOut: 0,
+      gasBasePrice: await SuiClientUtils.getReferenceGasPrice(),
+      poolObjectId: params.poolId,
+      tokenIn: params.tokenIn,
+    };
+  }
+
+  async buildSimulateSellParams(params: TSwapParams): Promise<ISellParams> {
+    const exactAmountIn = new BigNumber(params.amountIn).multipliedBy(10 ** params.tokenIn.decimals);
+    const [coinObjs] = await SuiClientUtils.getOwnerCoinOnchain(params.walletAddress, params.tokenIn.address);
+
+    return {
+      walletAddress: params.walletAddress,
+      exactAmountIn: exactAmountIn,
+      minAmountOut: 0,
+      tokenIn: params.tokenIn,
+      gasBasePrice: await SuiClientUtils.getReferenceGasPrice(),
+      coinObjs,
+      poolObjectId: params.poolId,
+    };
+  }
+
+  async buildBuyParams(params: TSwapParams): Promise<IBuyParams> {
+    const simulateParams = await this.buildSimulateBuyParams(params);
+    const simulateTx = await this.buildBuyTransaction(simulateParams);
+    const simulateResponse = await suiClient.dryRunTransactionBlock({
+      transactionBlock: await simulateTx.build({
+        client: suiClient,
+      }),
+    });
+
+    const { amountOut } = SuiClientUtils.extractTokenAmount(simulateResponse);
+
+    const minAmountOut = new BigNumber(amountOut)
+      .multipliedBy(1 - params.slippage / 100)
+      .integerValue(BigNumber.ROUND_FLOOR);
+
+    return {
+      walletAddress: params.walletAddress,
+      exactAmountIn: simulateParams.exactAmountIn,
+      minAmountOut: minAmountOut,
+      gasBasePrice: await SuiClientUtils.getReferenceGasPrice(),
+      poolObjectId: params.poolId,
+      tokenIn: params.tokenIn,
+    };
+  }
+
+  async buildSellParams(params: TSwapParams): Promise<ISellParams> {
+    const simulateParams = await this.buildSimulateSellParams(params);
+    const simulateTx = await this.buildSellTransaction(simulateParams);
+
+    console.log('========= simulateTx =========');
+    console.log(simulateTx);
+
+    return {
+      walletAddress: params.walletAddress,
+      exactAmountIn: simulateParams.exactAmountIn,
+      minAmountOut: 0,
+      tokenIn: params.tokenIn,
+      gasBasePrice: await SuiClientUtils.getReferenceGasPrice(),
+      coinObjs: simulateParams.coinObjs,
+      poolObjectId: params.poolId,
+    };
+  }
+
+  async buildBuyTransaction(params: IBuyParams): Promise<Transaction> {
+    const {
+      walletAddress,
+      exactAmountIn,
+      minAmountOut,
+      gasBasePrice,
+      poolObjectId,
+      tokenIn = SUI_TOKEN_METADATA,
+      orderId = 'abc',
+    } = params;
     const tx = new Transaction();
     tx.setGasBudget(10000000);
     tx.setSender(walletAddress);
@@ -80,26 +174,28 @@ export class CetusDexUtils extends BaseDexUtils {
         tokenXObject,
         tokenYObject,
         tx.pure.u64(exactAmountIn.toString()),
-        tx.pure.u64(0),
+        tx.pure.u64(minAmountOut.toString()),
         tx.pure.u128(xToY ? BigInt('4295048016') : BigInt('79226673515401279992447579055')),
         tx.object('0x6'),
         tx.pure.bool(xToY ? true : false), // buy = false, sell = true
-        tx.pure.string('abc'),
+        tx.pure.string(orderId),
       ],
     });
 
     return tx;
   }
 
-  static async buildSellTransaction(params: {
-    walletAddress: string;
-    exactAmountIn: BigNumber | string | number;
-    tokenIn: TCoinMetadata;
-    gasBasePrice: bigint;
-    coinObjs: (CoinStruct & { owner: string })[];
-    poolObjectId: string;
-  }): Promise<Transaction> {
-    const { walletAddress, exactAmountIn, tokenIn, gasBasePrice, coinObjs, poolObjectId } = params;
+  async buildSellTransaction(params: ISellParams): Promise<Transaction> {
+    const {
+      walletAddress,
+      exactAmountIn,
+      minAmountOut,
+      tokenIn,
+      gasBasePrice,
+      coinObjs,
+      poolObjectId,
+      orderId = 'abc',
+    } = params;
     const tx = new Transaction();
     tx.setGasBudget(10000000);
     tx.setSender(walletAddress);
@@ -155,11 +251,11 @@ export class CetusDexUtils extends BaseDexUtils {
         tokenXObject,
         tokenYObject,
         tx.pure.u64(exactAmountIn.toString()), // amountIn
-        tx.pure.u64(0), // amountOutMin
+        tx.pure.u64(minAmountOut.toString()), // amountOutMin
         tx.pure.u128(xToY ? BigInt('4295048016') : BigInt('79226673515401279992447579055')), // hardcode
         tx.object('0x6'), // clock
         tx.pure.bool(xToY ? true : false), // buy = false, sell = true
-        tx.pure.string('abc'), // orderId
+        tx.pure.string(orderId), // orderId
       ],
     });
     return tx;
