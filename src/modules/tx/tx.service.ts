@@ -1,10 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Model } from 'mongoose';
+import { Decimal128 } from 'bson';
 import BigNumber from 'bignumber.js';
 import { TxBuy, TxBuyDocument, TxBuyStatus } from 'modules/tx/schemas/tx-buy.schema';
-import { TxBuyReqDto } from 'modules/tx/dtos/req.dto';
-import { TxBuyResDto } from 'modules/tx/dtos/res.dto';
+import { TxResDto } from 'modules/tx/dtos/res.dto';
 import { CoinMetadata } from 'modules/coin/schemas/coin-metadata';
 import { SUI_TOKEN_METADATA } from 'common/constants/common';
 import { LoggerUtils } from 'common/utils/logger.utils';
@@ -12,6 +12,7 @@ import { SuiClientUtils } from 'common/utils/onchain/sui-client';
 import { CetusDexUtils } from 'common/utils/dexes/cetus.dex.utils';
 import { TimeUtils } from 'common/utils/time.utils';
 import { CoinService } from 'modules/coin/coin.service';
+import { UserService } from 'modules/user/user.service';
 
 @Injectable()
 export class TxService {
@@ -19,6 +20,7 @@ export class TxService {
   constructor(
     @InjectModel(TxBuy.name) private readonly txBuyModel: Model<TxBuyDocument>,
     private readonly coinService: CoinService,
+    private readonly userService: UserService,
   ) {}
 
   private async _getTokenIn(tokenIn?: string): Promise<CoinMetadata> {
@@ -31,15 +33,48 @@ export class TxService {
     throw new Error('Not implemented');
   }
 
-  async buy(txBuyReqDto: TxBuyReqDto, session: ClientSession): Promise<TxBuyResDto> {
-    const tokenIn = await this._getTokenIn(txBuyReqDto.tokenIn);
-    const exactAmountIn = new BigNumber(txBuyReqDto.amountIn).times(10 ** tokenIn.decimals).toString();
+  async buyByUserId(
+    userId: string,
+    params: {
+      tokenIn?: string;
+      poolId: string;
+      amountIn: string;
+    },
+    session: ClientSession,
+  ): Promise<TxResDto> {
+    const user = await this.userService.getUserById(userId, session);
+
+    return this.buy(
+      {
+        walletAddress: user.zkAddress,
+        ...params,
+      },
+      session,
+    );
+  }
+
+  async buy(
+    params: {
+      walletAddress: string;
+      tokenIn?: string;
+      poolId: string;
+      amountIn: string;
+    },
+    session: ClientSession,
+  ): Promise<TxResDto> {
+    const tokenIn = await this._getTokenIn(params.tokenIn);
+    const exactAmountIn = new BigNumber(params.amountIn).times(10 ** tokenIn.decimals).toString();
+
+    // TODO: get pool info from raidenx
+    // TODO: check if pool is valid
+    // TODO: check if user has enough balance
+    // TODO: select dex to build transaction
 
     const buyTx = await CetusDexUtils.buildBuyTransaction({
-      walletAddress: txBuyReqDto.walletAddress,
+      walletAddress: params.walletAddress,
       exactAmountIn,
       gasBasePrice: await SuiClientUtils.getReferenceGasPrice(),
-      poolObjectId: txBuyReqDto.poolId,
+      poolObjectId: params.poolId,
       tokenIn,
     });
 
@@ -48,9 +83,9 @@ export class TxService {
     const [txBuy] = await this.txBuyModel.create(
       [
         {
-          walletAddress: txBuyReqDto.walletAddress,
-          poolId: txBuyReqDto.poolId,
-          amountIn: exactAmountIn,
+          walletAddress: params.walletAddress,
+          poolId: params.poolId,
+          amountIn: new Decimal128(params.amountIn),
           tokenIn,
           txHash: null,
           txData,
@@ -96,5 +131,15 @@ export class TxService {
     // TODO: emit event success or failed to client by socket
 
     return txHash;
+  }
+
+  async getBuyByUserId(userId: string, requestId: string): Promise<TxBuyDocument> {
+    const user = await this.userService.getUserById(userId);
+    const txBuyRequest = await this.txBuyModel.findOne({ _id: requestId, walletAddress: user.zkAddress });
+    if (!txBuyRequest) {
+      throw new NotFoundException('TxBuyRequest not found');
+    }
+
+    return txBuyRequest;
   }
 }

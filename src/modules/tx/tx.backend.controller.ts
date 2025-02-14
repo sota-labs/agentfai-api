@@ -3,13 +3,13 @@ import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
 import { ApiKeyAuth } from 'common/decorators/api-key-auth.decorator';
 import { Backend } from 'common/decorators/backend.decorator';
-import { ExecuteTxBuyReqDto, TxBuyReqDto } from 'modules/tx/dtos/req.dto';
-import { ExecuteTxBuyResDto, TxBuyResDto } from 'modules/tx/dtos/res.dto';
+import { ExecuteTxBuyReqDto, TxBuyBackendReqDto } from 'modules/tx/dtos/req.dto';
+import { ExecuteTxBuyResDto, TxResDto } from 'modules/tx/dtos/res.dto';
 import { TxService } from 'modules/tx/tx.service';
 
 @ApiTags('Tx')
 @Controller({
-  path: 'tx',
+  path: '/backend/tx',
   version: '1',
 })
 @ApiKeyAuth()
@@ -19,8 +19,8 @@ export class TxBackendController {
   @Post('buy')
   @Backend()
   @ApiOperation({ summary: 'Buy a token' })
-  @ApiOkResponse({ type: TxBuyResDto })
-  async buy(@Body() txBuyReqDto: TxBuyReqDto): Promise<TxBuyResDto> {
+  @ApiOkResponse({ type: TxResDto })
+  async buy(@Body() txBuyReqDto: TxBuyBackendReqDto): Promise<TxResDto> {
     return this.txService.buy(txBuyReqDto, null);
   }
 

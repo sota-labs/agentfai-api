@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { CoinMetadata } from 'modules/coin/schemas/coin-metadata';
 import { Document } from 'mongoose';
+import { Decimal128 } from 'bson';
 import MongoosePaginate from 'mongoose-paginate-v2';
 
 export enum TxBuyStatus {
@@ -20,7 +21,7 @@ export class TxBuy {
   poolId: string;
 
   @Prop({ required: true })
-  amountIn: string;
+  amountIn: Decimal128;
 
   @Prop({ required: true })
   tokenIn: CoinMetadata;

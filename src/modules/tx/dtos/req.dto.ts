@@ -5,12 +5,6 @@ import { IsNotEmpty, IsNumberString, IsOptional, IsString } from 'class-validato
 @Exclude()
 export class TxBuyReqDto {
   @Expose()
-  @ApiProperty({ required: true })
-  @IsString()
-  @IsNotEmpty()
-  walletAddress: string;
-
-  @Expose()
   @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
@@ -29,6 +23,15 @@ export class TxBuyReqDto {
   @IsNotEmpty()
   @IsNumberString()
   amountIn: string;
+}
+
+@Exclude()
+export class TxBuyBackendReqDto extends TxBuyReqDto {
+  @Expose()
+  @ApiProperty({ required: true })
+  @IsString()
+  @IsNotEmpty()
+  walletAddress: string;
 }
 
 export class ExecuteTxBuyReqDto {

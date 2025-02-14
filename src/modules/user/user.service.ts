@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { jwtToAddress } from '@mysten/sui/zklogin';
 import { ClientSession, Model } from 'mongoose';
@@ -37,5 +37,14 @@ export class UserService {
 
   async findOneByUserId(userId: string): Promise<UserDocument | null> {
     return await this.userModel.findOne({ userId });
+  }
+
+  async getUserById(userId: string, session?: ClientSession): Promise<UserDocument> {
+    const user = await this.userModel.findOne({ userId }, null, { session });
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    return user;
   }
 }
