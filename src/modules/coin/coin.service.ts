@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { PaginateModel } from 'mongoose';
+import BigNumber from 'bignumber.js';
 import { ListCoinMetadataResDto } from 'modules/coin/dto/res';
 import { TokenUtils } from 'common/utils/token.utils';
 import { sortTrick } from 'common/utils/common.utils';
@@ -72,5 +73,10 @@ export class CoinService {
 
     const allCoinsMetadata = [...coins, ...missingCoinsMetadata];
     return sortTrick(allCoinsMetadata, addresses, 'address');
+  }
+
+  async getCoinBalance(walletAddress: string, tokenAddress: string): Promise<string> {
+    const [coinObjs] = await SuiClientUtils.getOwnerCoinOnchain(walletAddress, tokenAddress);
+    return coinObjs.reduce((acc, coin) => acc.plus(coin.balance), new BigNumber(0)).toString();
   }
 }

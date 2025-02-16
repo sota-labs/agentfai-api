@@ -10,6 +10,7 @@ import { SharedModule } from 'modules/shared/shared.module';
 import { SocketEmitterService } from 'modules/socket/socket-emitter.service';
 import { SocketModule } from 'modules/socket/socket.module';
 import { UserModule } from 'modules/user/user.module';
+import { OrderSell, OrderSellSchema } from './schemas/order-sell.schema';
 
 @Module({
   imports: [
@@ -17,7 +18,10 @@ import { UserModule } from 'modules/user/user.module';
     CoinModule,
     AgentModule,
     UserModule,
-    MongooseModule.forFeature([{ name: OrderBuy.name, schema: OrderBuySchema }]),
+    MongooseModule.forFeature([
+      { name: OrderBuy.name, schema: OrderBuySchema },
+      { name: OrderSell.name, schema: OrderSellSchema },
+    ]),
     forwardRef(() => SocketModule),
   ],
   controllers: [OrderController, OrderBackendController],
