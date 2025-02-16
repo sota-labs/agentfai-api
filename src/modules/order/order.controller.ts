@@ -1,13 +1,13 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/mongoose';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Connection } from 'mongoose';
 import { plainToInstance } from 'class-transformer';
 import { UserId } from 'common/decorators/user-id.decorator';
 import { MongoUtils } from 'common/utils/mongo.utils';
-import { OrderBuyReqDto } from 'modules/order/dtos/req.dto';
-import { OrderBuyResDto, OrderResDto } from 'modules/order/dtos/res.dto';
+import { OrderBuyReqDto, OrderSellReqDto } from 'modules/order/dtos/req.dto';
+import { OrderBuyResDto, OrderResDto, OrderSellResDto } from 'modules/order/dtos/res.dto';
 import { OrderService } from 'modules/order/order.service';
-import { Connection } from 'mongoose';
 
 @ApiTags('Order')
 @Controller({
@@ -38,5 +38,23 @@ export class OrderController {
     const orderBuy = await this.orderService.getBuyByUserId(userId, requestId);
 
     return plainToInstance(OrderBuyResDto, orderBuy.toObject());
+  }
+
+  @Post('sell')
+  @ApiOperation({ summary: 'Sell a token' })
+  @ApiOkResponse({ type: OrderResDto })
+  async sell(@UserId() userId: string, @Body() orderSellReqDto: OrderSellReqDto): Promise<OrderResDto> {
+    return MongoUtils.withTransaction(this.connection, async (session) => {
+      return this.orderService.sellByUserId(userId, orderSellReqDto, session);
+    });
+  }
+
+  @Get('sell/:requestId')
+  @ApiOperation({ summary: 'Get a transaction by request ID' })
+  @ApiOkResponse({ type: OrderSellResDto })
+  async getSellRequest(@UserId() userId: string, @Param('requestId') requestId: string): Promise<OrderSellResDto> {
+    const orderSell = await this.orderService.getSellByUserId(userId, requestId);
+
+    return plainToInstance(OrderSellResDto, orderSell.toObject());
   }
 }

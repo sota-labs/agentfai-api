@@ -60,3 +60,25 @@ export class ExecuteOrderBuyReqDto {
   @IsNotEmpty()
   signature: string;
 }
+
+export class OrderSellReqDto {
+  @Expose()
+  @ApiProperty({ required: true })
+  @IsString()
+  @IsNotEmpty()
+  poolId: string;
+
+  @Expose()
+  @ApiProperty({ required: true })
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  percent: number;
+
+  @Expose()
+  @ApiProperty({ required: true })
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  slippage: number;
+}

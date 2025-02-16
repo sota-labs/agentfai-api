@@ -35,7 +35,10 @@ interface ISellParams {
 
 export class CetusDexUtils extends BaseDexUtils implements IDexUtils {
   async buildSimulateBuyParams(params: TSwapParams): Promise<IBuyParams> {
-    const exactAmountIn = new BigNumber(params.amountIn).multipliedBy(10 ** params.tokenIn.decimals);
+    const exactAmountIn = new BigNumber(params.amountIn)
+      .multipliedBy(10 ** params.tokenIn.decimals)
+      .integerValue(BigNumber.ROUND_FLOOR);
+
     return {
       walletAddress: params.walletAddress,
       exactAmountIn: exactAmountIn,
@@ -47,7 +50,10 @@ export class CetusDexUtils extends BaseDexUtils implements IDexUtils {
   }
 
   async buildSimulateSellParams(params: TSwapParams): Promise<ISellParams> {
-    const exactAmountIn = new BigNumber(params.amountIn).multipliedBy(10 ** params.tokenIn.decimals);
+    const exactAmountIn = new BigNumber(params.amountIn)
+      .multipliedBy(10 ** params.tokenIn.decimals)
+      .integerValue(BigNumber.ROUND_FLOOR);
+
     const [coinObjs] = await SuiClientUtils.getOwnerCoinOnchain(params.walletAddress, params.tokenIn.address);
 
     return {
@@ -89,14 +95,26 @@ export class CetusDexUtils extends BaseDexUtils implements IDexUtils {
   async buildSellParams(params: TSwapParams): Promise<ISellParams> {
     const simulateParams = await this.buildSimulateSellParams(params);
     const simulateTx = await this.buildSellTransaction(simulateParams);
+    const simulateResponse = await suiClient.dryRunTransactionBlock({
+      transactionBlock: await simulateTx.build({
+        client: suiClient,
+      }),
+    });
 
-    console.log('========= simulateTx =========');
-    console.log(simulateTx);
+    const { amountOut, amountIn } = SuiClientUtils.extractTokenAmount(simulateResponse);
+    console.log('========= amountOut =========');
+    console.log(amountOut);
+    console.log('========= amountIn =========');
+    console.log(amountIn);
+
+    const minAmountOut = new BigNumber(amountOut)
+      .multipliedBy(1 - params.slippage / 100)
+      .integerValue(BigNumber.ROUND_FLOOR);
 
     return {
       walletAddress: params.walletAddress,
       exactAmountIn: simulateParams.exactAmountIn,
-      minAmountOut: 0,
+      minAmountOut,
       tokenIn: params.tokenIn,
       gasBasePrice: await SuiClientUtils.getReferenceGasPrice(),
       coinObjs: simulateParams.coinObjs,
@@ -245,9 +263,6 @@ export class CetusDexUtils extends BaseDexUtils implements IDexUtils {
         tx.object(dexes.cetus.feeObjectId), // feeObject
         tx.object(dexes.cetus.configObjectId), // dex config cetus
         tx.object(poolObjectId), // pool address
-        tx.object(
-          poolObjectId, // pool address
-        ),
         tokenXObject,
         tokenYObject,
         tx.pure.u64(exactAmountIn.toString()), // amountIn
