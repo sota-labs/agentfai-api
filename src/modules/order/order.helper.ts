@@ -1,9 +1,8 @@
 import { SuiTransactionBlockResponse } from '@mysten/sui/dist/cjs/client/types/generated';
 import { Decimal128 } from 'bson';
+import { EOrderSide, ETxStatus } from 'common/constants/dex';
 import { OrderBuyDocument } from 'modules/order/schemas/order-buy.schema';
 import { OrderSellDocument } from 'modules/order/schemas/order-sell.schema';
-import { EOrderSide, ETxStatus } from 'common/constants/dex';
-
 import { Tx } from 'modules/tx/schemas/tx.schema';
 
 export const transferOrderBuyToTx = (

@@ -4,10 +4,10 @@ dotenv.config();
 
 import { NestFactory } from '@nestjs/core';
 import { Transaction } from '@mysten/sui/transactions';
-import { AppModule } from '../app.module';
 import { suiClient, SuiClientUtils } from 'common/utils/onchain/sui-client';
 import { BaseDexUtils } from 'common/utils/dexes/base.dex.utils';
 import { OrderService } from 'modules/order/order.service';
+import { AppModule } from '../app.module';
 
 async function sell() {
   const app = await NestFactory.create(AppModule);

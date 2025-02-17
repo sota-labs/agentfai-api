@@ -1,9 +1,9 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Decimal128 } from 'bson';
-import { EOrderSide, ETxStatus } from 'common/constants/dex';
-import { CoinMetadata } from 'modules/coin/schemas/coin-metadata';
 import { Document } from 'mongoose';
 import MongoosePaginate from 'mongoose-paginate-v2';
+import { EOrderSide, ETxStatus } from 'common/constants/dex';
+import { CoinMetadata } from 'modules/coin/schemas/coin-metadata';
 
 export type TxDocument = Tx & Document;
 
