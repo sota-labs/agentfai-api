@@ -85,7 +85,7 @@ export class BluemoveDexUtils extends BaseDexUtils implements IDexUtils {
     };
   }
 
-  async buildSellParams(params: TSwapParams): Promise<any> {
+  async buildSellParams(params: TSwapParams): Promise<ISellParams> {
     const simulateParams = await this.buildSimulateSellParams(params);
     const simulateTx = await this.buildSellTransaction(simulateParams);
     const simulateResponse = await suiClient.dryRunTransactionBlock({
