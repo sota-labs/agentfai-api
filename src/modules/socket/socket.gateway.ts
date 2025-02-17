@@ -2,12 +2,13 @@ import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectConnection } from '@nestjs/mongoose';
 import { OnGatewayConnection, OnGatewayDisconnect, SubscribeMessage, WebSocketGateway } from '@nestjs/websockets';
-import { Connection } from 'mongoose';
-import { Socket } from 'socket.io';
+import { OrderSide } from 'common/constants/order';
 import { LoggerUtils } from 'common/utils/logger.utils';
 import { MongoUtils } from 'common/utils/mongo.utils';
 import { OrderService } from 'modules/order/order.service';
 import { SocketEvent } from 'modules/socket/socket.constant';
+import { Connection } from 'mongoose';
+import { Socket } from 'socket.io';
 
 @Injectable()
 @WebSocketGateway({
@@ -30,6 +31,8 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   async handleConnection(client: Socket): Promise<void> {
     const token = this._extractTokenFromSocket(client);
+    console.log('client: ', client.handshake.auth.authorization);
+    console.log('token: ', token);
 
     if (token) {
       try {
@@ -51,10 +54,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   private _extractTokenFromSocket(client: Socket): string | undefined {
-    const authHeader =
-      client.handshake.query?.authorization ||
-      client.handshake.headers['authorization'] ||
-      client.handshake.auth['authorization'];
+    const authHeader = client.handshake.query?.authorization || client.handshake.auth['authorization'];
 
     if (typeof authHeader !== 'string') {
       return undefined;
@@ -65,19 +65,15 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return type === 'Bearer' ? token : authHeader;
   }
 
-  @SubscribeMessage(SocketEvent.ORDER_BUY_SIGNATURE)
-  async handleOrderBuySignature(data: { orderRequestId: string; signature: string }): Promise<void> {
-    this.logger.info(`Order buy signature: ${data}`);
+  @SubscribeMessage(SocketEvent.ORDER_SIGNATURE)
+  async handleOrderSignature(data: { orderRequestId: string; signature: string; orderSide: OrderSide }): Promise<void> {
+    this.logger.info(`Order signature: ${data}`);
     await MongoUtils.withTransaction(this.connection, async (session) => {
-      await this.orderService.executeOrderBuy(data.orderRequestId, data.signature, session);
-    });
-  }
-
-  @SubscribeMessage(SocketEvent.ORDER_SELL_SIGNATURE)
-  async handleOrderSellSignature(data: { orderRequestId: string; signature: string }): Promise<void> {
-    this.logger.info(`Order sell signature: ${data}`);
-    await MongoUtils.withTransaction(this.connection, async (session) => {
-      await this.orderService.executeOrderSell(data.orderRequestId, data.signature, session);
+      if (data.orderSide === OrderSide.BUY) {
+        await this.orderService.executeOrderBuy(data.orderRequestId, data.signature, session);
+      } else {
+        await this.orderService.executeOrderSell(data.orderRequestId, data.signature, session);
+      }
     });
   }
 }

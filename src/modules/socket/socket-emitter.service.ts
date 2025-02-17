@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { createClient, RedisClientType } from 'redis';
 import { LoggerUtils } from 'common/utils/logger.utils';
 import { EAgentAction } from 'common/constants/agent';
+import { SocketEvent } from 'modules/socket/socket.constant';
 
 @Injectable()
 export class SocketEmitterService {
@@ -23,15 +24,15 @@ export class SocketEmitterService {
     this.emitter = new Emitter(this.redisClient);
   }
 
-  public emit<T>(event: string, data: T): void {
+  public emit<T>(event: SocketEvent, data: T): void {
     this.emitter.emit(event, data);
   }
 
-  public emitToUser<T>(userId: string, event: string, data: T): void {
+  public emitToUser<T>(userId: string, event: SocketEvent, data: T): void {
     this.emitter.to(`USER::${userId}`).emit(event, data);
   }
 
   public emitActionWebhookTrigger(userId: string, payload: { action: EAgentAction; agentId: string }): void {
-    this.emitter.to(`USER::${userId}`).emit('agent_action_trigger', payload);
+    this.emitter.to(`USER::${userId}`).emit(SocketEvent.AGENT_ACTION_TRIGGER, payload);
   }
 }

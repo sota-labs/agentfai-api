@@ -46,6 +46,9 @@ export class OrderSell {
 
   @Prop({ required: true })
   status: string;
+
+  @Prop({ required: true })
+  uniqueId: string;
 }
 
 export const OrderSellSchema = SchemaFactory.createForClass(OrderSell);

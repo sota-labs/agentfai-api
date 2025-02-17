@@ -4,10 +4,7 @@
   "sourceRoot": "src",
   "compilerOptions": {
     "deleteOutDir": true,
-    "assets": [
-      "**/*.hbs",
-      "**/*.png"
-    ]
+    "assets": ["**/*.hbs", "**/*.png"]
   },
   "projects": {
     "api": {
@@ -24,6 +21,16 @@
       "type": "application",
       "root": "src",
       "entryFile": "starters/test.starter"
+    },
+    "buy": {
+      "type": "application",
+      "root": "src",
+      "entryFile": "examples/order-buy.example"
+    },
+    "sell": {
+      "type": "application",
+      "root": "src",
+      "entryFile": "examples/order-sell.example"
     }
   }
 }

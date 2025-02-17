@@ -17,10 +17,18 @@ import { TCoinMetadata } from 'common/types/coin.type';
 import { FactoryDexUtils } from 'common/utils/dexes/factory.dex.utils';
 import { EDex } from 'common/constants/dex';
 import { OrderSell, OrderSellStatus, OrderSellDocument } from 'modules/order/schemas/order-sell.schema';
+import { transferOrderBuyToTx, transferOrderSellToTx } from 'modules/order/order.helper';
+import { TxService } from 'modules/tx/tx.service';
+import { Snowflake } from 'nodejs-snowflake';
+import { OrderSide } from 'common/constants/order';
 
 @Injectable()
 export class OrderService {
   private readonly logger = LoggerUtils.get(OrderService.name);
+  private readonly snowflake = new Snowflake({
+    custom_epoch: new Date().getTime(),
+  });
+
   constructor(
     @InjectModel(OrderBuy.name) private readonly orderBuyModel: Model<OrderBuyDocument>,
     @InjectModel(OrderSell.name) private readonly orderSellModel: Model<OrderSellDocument>,
@@ -29,6 +37,7 @@ export class OrderService {
     @Inject(forwardRef(() => SocketEmitterService))
     private readonly socketEmitterService: SocketEmitterService,
     private readonly raidenxProvider: RaidenxProvider,
+    private readonly txService: TxService,
   ) {}
 
   async buyByUserId(
@@ -84,6 +93,7 @@ export class OrderService {
     };
 
     const dexInstance = FactoryDexUtils.getDexInstance(poolInfo.dex.dex as EDex);
+    const uniqueId = this.snowflake.getUniqueID();
     const txBuyParams = await dexInstance.buildBuyParams({
       walletAddress: params.walletAddress,
       tokenIn,
@@ -91,6 +101,7 @@ export class OrderService {
       poolId: params.poolId,
       amountIn: params.amountIn,
       slippage: params.slippage ?? 100,
+      uniqueId: uniqueId.toString(),
     });
 
     const txBuy = await dexInstance.buildBuyTransaction(txBuyParams);
@@ -109,6 +120,7 @@ export class OrderService {
           txData,
           timestamp: TimeUtils.nowInSeconds(),
           status: OrderBuyStatus.PENDING,
+          uniqueId,
         },
       ],
       { session },
@@ -119,7 +131,10 @@ export class OrderService {
       txData,
     };
 
-    this.socketEmitterService.emit(SocketEvent.ORDER_BUY_REQUEST, res);
+    this.socketEmitterService.emitToUser(params.userId, SocketEvent.ORDER_REQUEST, {
+      ...res,
+      orderSide: OrderSide.BUY,
+    });
 
     return res;
   }
@@ -142,11 +157,16 @@ export class OrderService {
 
     await this.orderBuyModel.findByIdAndUpdate({ _id: orderRequestId }, { txHash, status }, { session });
     // TODO: emit event success or failed to client by socket
-    this.socketEmitterService.emitToUser(orderBuyRequest.userId, SocketEvent.ORDER_BUY_RESULT, {
+    this.socketEmitterService.emitToUser(orderBuyRequest.userId, SocketEvent.ORDER_RESULT, {
       orderRequestId,
       txHash,
       status,
+      orderSide: OrderSide.BUY,
     });
+
+    // save tx
+    const tx = transferOrderBuyToTx(orderBuyRequest, txResult, txHash);
+    await this.txService.createTx(tx, session);
 
     return txHash;
   }
@@ -219,6 +239,7 @@ export class OrderService {
       .decimalPlaces(tokenIn.decimals, BigNumber.ROUND_FLOOR)
       .toString();
 
+    const uniqueId = this.snowflake.getUniqueID();
     const txSellParams = await dexInstance.buildSellParams({
       walletAddress: params.walletAddress,
       tokenIn,
@@ -226,6 +247,7 @@ export class OrderService {
       poolId: params.poolId,
       amountIn: amountIn,
       slippage: params.slippage ?? 100,
+      uniqueId: uniqueId.toString(),
     });
 
     const txSell = await dexInstance.buildSellTransaction(txSellParams);
@@ -245,6 +267,7 @@ export class OrderService {
           txData,
           timestamp: TimeUtils.nowInSeconds(),
           status: OrderSellStatus.PENDING,
+          uniqueId,
         },
       ],
       { session },
@@ -255,7 +278,10 @@ export class OrderService {
       txData,
     };
 
-    this.socketEmitterService.emit(SocketEvent.ORDER_SELL_REQUEST, res);
+    this.socketEmitterService.emit(SocketEvent.ORDER_REQUEST, {
+      ...res,
+      orderSide: OrderSide.SELL,
+    });
 
     return res;
   }
@@ -278,11 +304,16 @@ export class OrderService {
 
     await this.orderSellModel.findByIdAndUpdate({ _id: orderRequestId }, { txHash, status }, { session });
     // TODO: emit event success or failed to client by socket
-    this.socketEmitterService.emitToUser(orderSellRequest.userId, SocketEvent.ORDER_SELL_RESULT, {
+    this.socketEmitterService.emitToUser(orderSellRequest.userId, SocketEvent.ORDER_RESULT, {
       orderRequestId,
       txHash,
       status,
+      orderSide: OrderSide.SELL,
     });
+
+    // save tx
+    const tx = transferOrderSellToTx(orderSellRequest, txResult, txHash);
+    await this.txService.createTx(tx, session);
 
     return txHash;
   }
