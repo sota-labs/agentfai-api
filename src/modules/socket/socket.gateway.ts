@@ -8,6 +8,8 @@ import { LoggerUtils } from 'common/utils/logger.utils';
 import { MongoUtils } from 'common/utils/mongo.utils';
 import { OrderService } from 'modules/order/order.service';
 import { SocketEvent } from 'modules/socket/socket.constant';
+import { EOrderSide } from 'common/constants/dex';
+import { IWsOrderSignaturePayload } from 'common/interfaces/socket';
 
 @Injectable()
 @WebSocketGateway({
@@ -65,19 +67,36 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return type === 'Bearer' ? token : authHeader;
   }
 
-  @SubscribeMessage(SocketEvent.ORDER_BUY_SIGNATURE)
-  async handleOrderBuySignature(data: { orderRequestId: string; signature: string }): Promise<void> {
-    this.logger.info(`Order buy signature: ${data}`);
-    await MongoUtils.withTransaction(this.connection, async (session) => {
-      await this.orderService.executeOrderBuy(data.orderRequestId, data.signature, session);
-    });
-  }
+  @SubscribeMessage(SocketEvent.ORDER_SIGNATURE)
+  async handleOrderSignature(client: Socket, data: IWsOrderSignaturePayload): Promise<void> {
+    const token = this._extractTokenFromSocket(client);
+    if (!token) {
+      throw new Error('Unauthorized');
+    }
 
-  @SubscribeMessage(SocketEvent.ORDER_SELL_SIGNATURE)
-  async handleOrderSellSignature(data: { orderRequestId: string; signature: string }): Promise<void> {
-    this.logger.info(`Order sell signature: ${data}`);
+    const { userId }: any = this.jwtService.verify(token);
+    this.logger.info(`Order buy signature from user ${userId}: ${JSON.stringify(data)}`);
+
     await MongoUtils.withTransaction(this.connection, async (session) => {
-      await this.orderService.executeOrderSell(data.orderRequestId, data.signature, session);
+      if (data.orderSide === EOrderSide.BUY) {
+        await this.orderService.executeOrderBuy(
+          {
+            userId,
+            requestId: data.requestId,
+            signature: data.signature,
+          },
+          session,
+        );
+      } else {
+        await this.orderService.executeOrderSell(
+          {
+            userId,
+            requestId: data.requestId,
+            signature: data.signature,
+          },
+          session,
+        );
+      }
     });
   }
 }

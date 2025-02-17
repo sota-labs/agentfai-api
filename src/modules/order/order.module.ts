@@ -2,7 +2,6 @@ import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AgentModule } from 'modules/agent/agent.module';
 import { CoinModule } from 'modules/coin/coin.module';
-import { OrderBackendController } from 'modules/order/order.backend.controller';
 import { OrderController } from 'modules/order/order.controller';
 import { OrderService } from 'modules/order/order.service';
 import { OrderBuy, OrderBuySchema } from 'modules/order/schemas/order-buy.schema';
@@ -24,7 +23,7 @@ import { OrderSell, OrderSellSchema } from './schemas/order-sell.schema';
     ]),
     forwardRef(() => SocketModule),
   ],
-  controllers: [OrderController, OrderBackendController],
+  controllers: [OrderController],
   providers: [OrderService, SocketEmitterService],
   exports: [OrderService],
 })

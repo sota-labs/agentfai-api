@@ -5,7 +5,7 @@ import { Connection } from 'mongoose';
 import { plainToInstance } from 'class-transformer';
 import { UserId } from 'common/decorators/user-id.decorator';
 import { MongoUtils } from 'common/utils/mongo.utils';
-import { OrderBuyReqDto, OrderSellReqDto } from 'modules/order/dtos/req.dto';
+import { OrderBuyReqDto, OrderSellReqDto, SignatureReqDto } from 'modules/order/dtos/req.dto';
 import { OrderBuyResDto, OrderResDto, OrderSellResDto } from 'modules/order/dtos/res.dto';
 import { OrderService } from 'modules/order/order.service';
 
@@ -32,12 +32,34 @@ export class OrderController {
   }
 
   @Get('buy/:requestId')
-  @ApiOperation({ summary: 'Get a transaction by request ID' })
+  @ApiOperation({ summary: 'Get order buy by request ID' })
   @ApiOkResponse({ type: OrderBuyResDto })
   async getBuyRequest(@UserId() userId: string, @Param('requestId') requestId: string): Promise<OrderBuyResDto> {
     const orderBuy = await this.orderService.getBuyByUserId(userId, requestId);
 
     return plainToInstance(OrderBuyResDto, orderBuy.toObject());
+  }
+
+  @Post('buy/:requestId/signature')
+  @ApiOperation({ summary: 'Execute order buy by request ID' })
+  @ApiOkResponse({ type: OrderBuyResDto })
+  async executeOrderBuy(
+    @UserId() userId: string,
+    @Param('requestId') requestId: string,
+    @Body() signatureReqDto: SignatureReqDto,
+  ): Promise<OrderBuyResDto> {
+    return MongoUtils.withTransaction(this.connection, async (session) => {
+      const orderBuy = await this.orderService.executeOrderBuy(
+        {
+          userId,
+          requestId,
+          signature: signatureReqDto.signature,
+        },
+        session,
+      );
+
+      return plainToInstance(OrderBuyResDto, orderBuy.toObject());
+    });
   }
 
   @Post('sell')
@@ -50,11 +72,33 @@ export class OrderController {
   }
 
   @Get('sell/:requestId')
-  @ApiOperation({ summary: 'Get a transaction by request ID' })
+  @ApiOperation({ summary: 'Get order sell by request ID' })
   @ApiOkResponse({ type: OrderSellResDto })
   async getSellRequest(@UserId() userId: string, @Param('requestId') requestId: string): Promise<OrderSellResDto> {
     const orderSell = await this.orderService.getSellByUserId(userId, requestId);
 
     return plainToInstance(OrderSellResDto, orderSell.toObject());
+  }
+
+  @Post('sell/:requestId/signature')
+  @ApiOperation({ summary: 'Execute order sell by request ID' })
+  @ApiOkResponse({ type: OrderSellResDto })
+  async executeOrderSell(
+    @UserId() userId: string,
+    @Param('requestId') requestId: string,
+    @Body() signatureReqDto: SignatureReqDto,
+  ): Promise<OrderSellResDto> {
+    return MongoUtils.withTransaction(this.connection, async (session) => {
+      const orderSell = await this.orderService.executeOrderSell(
+        {
+          userId,
+          requestId,
+          signature: signatureReqDto.signature,
+        },
+        session,
+      );
+
+      return plainToInstance(OrderSellResDto, orderSell.toObject());
+    });
   }
 }
