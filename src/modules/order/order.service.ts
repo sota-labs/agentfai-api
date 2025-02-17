@@ -15,12 +15,12 @@ import { UserService } from 'modules/user/user.service';
 import { RaidenxProvider } from 'modules/shared/providers';
 import { TCoinMetadata } from 'common/types/coin.type';
 import { FactoryDexUtils } from 'common/utils/dexes/factory.dex.utils';
-import { EDex } from 'common/constants/dex';
+import { EDex, EOrderSide } from 'common/constants/dex';
 import { OrderSell, OrderSellStatus, OrderSellDocument } from 'modules/order/schemas/order-sell.schema';
 import { transferOrderBuyToTx, transferOrderSellToTx } from 'modules/order/order.helper';
 import { TxService } from 'modules/tx/tx.service';
 import { Snowflake } from 'nodejs-snowflake';
-import { OrderSide } from 'common/constants/order';
+import { IWsOrderReqPayload, IWsOrderResultPayload } from 'common/interfaces/socket';
 
 @Injectable()
 export class OrderService {
@@ -126,26 +126,29 @@ export class OrderService {
       { session },
     );
 
-    const res = {
+    const res: IWsOrderReqPayload = {
       requestId: orderBuy._id.toString(),
       txData,
+      orderSide: EOrderSide.BUY,
     };
 
-    this.socketEmitterService.emitToUser(params.userId, SocketEvent.ORDER_REQUEST, {
-      ...res,
-      orderSide: OrderSide.BUY,
-    });
+    this.socketEmitterService.emitToUser(params.userId, SocketEvent.ORDER_REQUEST, res);
 
     return res;
   }
 
-  async executeOrderBuy(orderRequestId: string, signature: string, session: ClientSession): Promise<string> {
-    const orderBuyRequest = await this.orderBuyModel.findById({ _id: orderRequestId }, null, { session });
+  async executeOrderBuy(
+    params: { userId: string; requestId: string; signature: string },
+    session: ClientSession,
+  ): Promise<OrderBuyDocument> {
+    const orderBuyRequest = await this.orderBuyModel.findById({ _id: params.requestId, userId: params.userId }, null, {
+      session,
+    });
     if (!orderBuyRequest) {
       throw new Error('OrderBuyRequest not found');
     }
 
-    const txResult = await SuiClientUtils.executeTransaction(orderBuyRequest.txData, signature);
+    const txResult = await SuiClientUtils.executeTransaction(orderBuyRequest.txData, params.signature);
     const txHash = txResult.digest;
     const errors = txResult.errors;
     this.logger.info(`Tx buy executed: ${txHash}`);
@@ -155,20 +158,25 @@ export class OrderService {
       status = OrderBuyStatus.FAILED;
     }
 
-    await this.orderBuyModel.findByIdAndUpdate({ _id: orderRequestId }, { txHash, status }, { session });
-    // TODO: emit event success or failed to client by socket
-    this.socketEmitterService.emitToUser(orderBuyRequest.userId, SocketEvent.ORDER_RESULT, {
-      orderRequestId,
+    const orderBuy = await this.orderBuyModel.findByIdAndUpdate(
+      { _id: params.requestId },
+      { txHash, status },
+      { session },
+    );
+
+    const wsOrderResultPayload: IWsOrderResultPayload = {
+      requestId: params.requestId,
+      orderSide: EOrderSide.BUY,
       txHash,
       status,
-      orderSide: OrderSide.BUY,
-    });
+    };
+    this.socketEmitterService.emitToUser(orderBuy.userId, SocketEvent.ORDER_RESULT, wsOrderResultPayload);
 
     // save tx
     const tx = transferOrderBuyToTx(orderBuyRequest, txResult, txHash);
     await this.txService.createTx(tx, session);
 
-    return txHash;
+    return orderBuy;
   }
 
   async getBuyByUserId(userId: string, requestId: string): Promise<OrderBuyDocument> {
@@ -273,26 +281,35 @@ export class OrderService {
       { session },
     );
 
-    const res = {
+    const res: IWsOrderReqPayload = {
       requestId: orderSell._id.toString(),
       txData,
+      orderSide: EOrderSide.SELL,
     };
 
-    this.socketEmitterService.emit(SocketEvent.ORDER_REQUEST, {
-      ...res,
-      orderSide: OrderSide.SELL,
-    });
+    this.socketEmitterService.emitToUser(params.userId, SocketEvent.ORDER_REQUEST, res);
 
     return res;
   }
 
-  async executeOrderSell(orderRequestId: string, signature: string, session: ClientSession): Promise<string> {
-    const orderSellRequest = await this.orderSellModel.findById({ _id: orderRequestId }, null, { session });
+  async executeOrderSell(
+    params: {
+      userId: string;
+      requestId: string;
+      signature: string;
+    },
+    session: ClientSession,
+  ): Promise<OrderSellDocument> {
+    const orderSellRequest = await this.orderSellModel.findById(
+      { _id: params.requestId, userId: params.userId },
+      null,
+      { session },
+    );
     if (!orderSellRequest) {
       throw new Error('OrderSellRequest not found');
     }
 
-    const txResult = await SuiClientUtils.executeTransaction(orderSellRequest.txData, signature);
+    const txResult = await SuiClientUtils.executeTransaction(orderSellRequest.txData, params.signature);
     const txHash = txResult.digest;
     const errors = txResult.errors;
     this.logger.info(`Tx sell executed: ${txHash}`);
@@ -302,20 +319,25 @@ export class OrderService {
       status = OrderSellStatus.FAILED;
     }
 
-    await this.orderSellModel.findByIdAndUpdate({ _id: orderRequestId }, { txHash, status }, { session });
-    // TODO: emit event success or failed to client by socket
-    this.socketEmitterService.emitToUser(orderSellRequest.userId, SocketEvent.ORDER_RESULT, {
-      orderRequestId,
+    const orderSell = await this.orderSellModel.findByIdAndUpdate(
+      { _id: params.requestId },
+      { txHash, status },
+      { session },
+    );
+
+    const wsOrderResultPayload: IWsOrderResultPayload = {
+      requestId: params.requestId,
+      orderSide: EOrderSide.SELL,
       txHash,
       status,
-      orderSide: OrderSide.SELL,
-    });
+    };
+    this.socketEmitterService.emitToUser(orderSellRequest.userId, SocketEvent.ORDER_RESULT, wsOrderResultPayload);
 
     // save tx
     const tx = transferOrderSellToTx(orderSellRequest, txResult, txHash);
     await this.txService.createTx(tx, session);
 
-    return txHash;
+    return orderSell;
   }
 
   async getSellByUserId(userId: string, requestId: string): Promise<OrderSellDocument> {

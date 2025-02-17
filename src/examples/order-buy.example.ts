@@ -45,9 +45,16 @@ async function buy() {
   console.log('========= signedTx =========');
   console.log(signedTx);
 
-  const txHash = await orderService.executeOrderBuy(orderRes.requestId, signedTx.signature, null);
-  console.log('========= tx hash buy =========');
-  console.log(txHash);
+  const orderBuy = await orderService.executeOrderBuy(
+    {
+      userId: '1262915258',
+      requestId: orderRes.requestId,
+      signature: signedTx.signature,
+    },
+    null,
+  );
+  console.log('========= orderBuy =========');
+  console.log(orderBuy);
 }
 
 buy();

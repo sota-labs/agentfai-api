@@ -2,13 +2,14 @@ import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectConnection } from '@nestjs/mongoose';
 import { OnGatewayConnection, OnGatewayDisconnect, SubscribeMessage, WebSocketGateway } from '@nestjs/websockets';
-import { OrderSide } from 'common/constants/order';
 import { LoggerUtils } from 'common/utils/logger.utils';
 import { MongoUtils } from 'common/utils/mongo.utils';
 import { OrderService } from 'modules/order/order.service';
 import { SocketEvent } from 'modules/socket/socket.constant';
 import { Connection } from 'mongoose';
 import { Socket } from 'socket.io';
+import { EOrderSide } from 'common/constants/dex';
+import { IWsOrderSignaturePayload } from 'common/interfaces/socket';
 
 @Injectable()
 @WebSocketGateway({
@@ -31,8 +32,6 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   async handleConnection(client: Socket): Promise<void> {
     const token = this._extractTokenFromSocket(client);
-    console.log('client: ', client.handshake.auth.authorization);
-    console.log('token: ', token);
 
     if (token) {
       try {
@@ -66,13 +65,34 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage(SocketEvent.ORDER_SIGNATURE)
-  async handleOrderSignature(data: { orderRequestId: string; signature: string; orderSide: OrderSide }): Promise<void> {
-    this.logger.info(`Order signature: ${data}`);
+  async handleOrderSignature(client: Socket, data: IWsOrderSignaturePayload): Promise<void> {
+    const token = this._extractTokenFromSocket(client);
+    if (!token) {
+      throw new Error('Unauthorized');
+    }
+
+    const { userId }: any = this.jwtService.verify(token);
+    this.logger.info(`Order buy signature from user ${userId}: ${JSON.stringify(data)}`);
+
     await MongoUtils.withTransaction(this.connection, async (session) => {
-      if (data.orderSide === OrderSide.BUY) {
-        await this.orderService.executeOrderBuy(data.orderRequestId, data.signature, session);
+      if (data.orderSide === EOrderSide.BUY) {
+        await this.orderService.executeOrderBuy(
+          {
+            userId,
+            requestId: data.requestId,
+            signature: data.signature,
+          },
+          session,
+        );
       } else {
-        await this.orderService.executeOrderSell(data.orderRequestId, data.signature, session);
+        await this.orderService.executeOrderSell(
+          {
+            userId,
+            requestId: data.requestId,
+            signature: data.signature,
+          },
+          session,
+        );
       }
     });
   }

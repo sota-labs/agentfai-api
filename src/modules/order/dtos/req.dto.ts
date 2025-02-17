@@ -82,3 +82,11 @@ export class OrderSellReqDto {
   @Max(100)
   slippage: number;
 }
+
+export class SignatureReqDto {
+  @Expose()
+  @ApiProperty({ required: true })
+  @IsString()
+  @IsNotEmpty()
+  signature: string;
+}

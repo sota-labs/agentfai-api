@@ -2,7 +2,7 @@ import { SuiTransactionBlockResponse } from '@mysten/sui/dist/cjs/client/types/g
 import { Decimal128 } from 'bson';
 import { OrderBuyDocument } from 'modules/order/schemas/order-buy.schema';
 import { OrderSellDocument } from 'modules/order/schemas/order-sell.schema';
-import { TxType, TxStatus } from 'modules/tx/schemas/tx.schema';
+import { EOrderSide, ETxStatus } from 'common/constants/dex';
 
 import { Tx } from 'modules/tx/schemas/tx.schema';
 
@@ -16,7 +16,7 @@ export const transferOrderBuyToTx = (
 
   const tx = new Tx();
   tx.userId = orderBuy.userId;
-  tx.type = TxType.BUY;
+  tx.type = EOrderSide.BUY;
   tx.requestId = orderBuy._id.toString();
   tx.payload = {
     walletAddress: orderBuy.walletAddress,
@@ -27,7 +27,7 @@ export const transferOrderBuyToTx = (
   tx.txHash = txHash;
   tx.amountIn = Decimal128.fromString(orderBuy.amountIn.toString());
   tx.amountOut = Decimal128.fromString(amountOut.toString());
-  tx.status = txResult.effects?.status.status === 'success' ? TxStatus.SUCCESS : TxStatus.FAILED;
+  tx.status = txResult.effects?.status.status === 'success' ? ETxStatus.SUCCESS : ETxStatus.FAILED;
   return tx;
 };
 
@@ -41,7 +41,7 @@ export const transferOrderSellToTx = (
 
   const tx = new Tx();
   tx.userId = orderSell.userId;
-  tx.type = TxType.SELL;
+  tx.type = EOrderSide.SELL;
   tx.requestId = orderSell._id.toString();
   tx.payload = {
     walletAddress: orderSell.walletAddress,
@@ -52,6 +52,6 @@ export const transferOrderSellToTx = (
   tx.txHash = txHash;
   tx.amountIn = Decimal128.fromString(orderSell.amountIn.toString());
   tx.amountOut = Decimal128.fromString(amountOut.toString());
-  tx.status = txResult.effects?.status.status === 'success' ? TxStatus.SUCCESS : TxStatus.FAILED;
+  tx.status = txResult.effects?.status.status === 'success' ? ETxStatus.SUCCESS : ETxStatus.FAILED;
   return tx;
 };

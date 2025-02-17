@@ -3,20 +3,20 @@ import { Exclude, Expose, Transform, Type } from 'class-transformer';
 import { IsEnum, IsOptional } from 'class-validator';
 import { BasePaginationResDto } from 'common/dtos/paginate.dto';
 import { CoinMetadata } from 'modules/coin/schemas/coin-metadata';
-import { TxStatus, TxType } from 'modules/tx/schemas/tx.schema';
+import { EOrderSide, ETxStatus } from 'common/constants/dex';
 
 export class GetAllTxQuery {
   @ApiProperty({
-    enum: TxType,
-    enumName: 'TxType',
+    enum: EOrderSide,
+    enumName: 'EOrderSide',
     example: '',
     default: null,
     description: 'Type of tx to filter. If not provided, all txs will be returned.',
     required: false,
   })
   @IsOptional()
-  @IsEnum(TxType)
-  type?: TxType;
+  @IsEnum(EOrderSide)
+  type?: EOrderSide;
 
   @ApiProperty({
     example: '',
@@ -77,12 +77,12 @@ export class TxDtoResponse {
   userId: string;
 
   @Expose()
-  @ApiProperty({ example: TxType.BUY, description: 'The type of the tx' })
-  type: TxType;
+  @ApiProperty({ example: EOrderSide.BUY, description: 'The type of the tx' })
+  type: EOrderSide;
 
   @Expose()
-  @ApiProperty({ example: TxStatus.SUCCESS, description: 'The status of the tx' })
-  status: TxStatus;
+  @ApiProperty({ example: ETxStatus.SUCCESS, description: 'The status of the tx' })
+  status: ETxStatus;
 
   @Expose()
   @ApiProperty({ type: TxPayloadDto, description: 'The payload of the tx' })

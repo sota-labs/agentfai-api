@@ -1,19 +1,9 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Decimal128 } from 'bson';
+import { EOrderSide, ETxStatus } from 'common/constants/dex';
 import { CoinMetadata } from 'modules/coin/schemas/coin-metadata';
 import { Document } from 'mongoose';
 import MongoosePaginate from 'mongoose-paginate-v2';
-
-export enum TxType {
-  BUY = 'buy',
-  SELL = 'sell',
-}
-
-export enum TxStatus {
-  PENDING = 'pending',
-  SUCCESS = 'success',
-  FAILED = 'failed',
-}
 
 export type TxDocument = Tx & Document;
 
@@ -34,7 +24,7 @@ export class Tx {
   userId: string;
 
   @Prop({ required: true })
-  type: TxType;
+  type: EOrderSide;
 
   @Prop({ required: true })
   requestId: string;
@@ -55,7 +45,7 @@ export class Tx {
   amountOut: Decimal128;
 
   @Prop({ required: true })
-  status: TxStatus;
+  status: ETxStatus;
 }
 
 export const TxSchema = SchemaFactory.createForClass(Tx);

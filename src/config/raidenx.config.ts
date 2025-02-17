@@ -57,9 +57,9 @@ const RaidenxConfig = registerAs(raidenxRegToken, () => ({
       aggregatorVaultObject: '0x39a3c55742c0e011b6f65548e73cf589e1ae5e82dbfab449ca57f24c3bcd9514',
     },
     bluefin: {
-      package: '0x7086379aa92752a7d8f939ba4f1e496d57ba6803a47e4af5aec1346899b3e060',
+      package: '0x3de1d8df57158d1c93e3e1b614f38ee5163286257710fd352ac7a12c0e0a09e3',
       module: 'bluefin_router',
-      feeObjectId: '0x53a16d154501b8cdf91debad7834bed4e28e2821a8dc6727bd64cbafad084c03',
+      feeObjectId: '',
       configObjectId: '0x03db251ba509a8d5d8777b6338836082335d93eecbdd09a11e190a1cff51c352',
     },
     suiaifun: {

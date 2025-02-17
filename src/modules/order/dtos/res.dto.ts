@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Exclude, Expose, Transform, Type } from 'class-transformer';
+import { EOrderSide } from 'common/constants/dex';
 import { CoinMetadata } from 'modules/coin/schemas/coin-metadata';
 
 @Exclude()
@@ -11,6 +12,10 @@ export class OrderResDto {
   @Expose()
   @ApiProperty({ required: true, description: 'Transaction data' })
   txData: string;
+
+  @Expose()
+  @ApiProperty({ required: true, description: 'Order side' })
+  orderSide: EOrderSide;
 }
 
 @Exclude()

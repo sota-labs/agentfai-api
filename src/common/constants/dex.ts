@@ -12,3 +12,14 @@ export enum EDex {
 
 export const ROUTER_BUY_EVENT = 'BuyEvent';
 export const ROUTER_SELL_EVENT = 'SellEvent';
+
+export enum EOrderSide {
+  BUY = 'buy',
+  SELL = 'sell',
+}
+
+export enum ETxStatus {
+  PENDING = 'pending',
+  SUCCESS = 'success',
+  FAILED = 'failed',
+}
