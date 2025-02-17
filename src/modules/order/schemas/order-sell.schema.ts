@@ -35,6 +35,9 @@ export class OrderSell {
   @Prop({ required: true })
   tokenIn: CoinMetadata;
 
+  @Prop({ required: true })
+  tokenOut: CoinMetadata;
+
   @Prop()
   txHash: string;
 

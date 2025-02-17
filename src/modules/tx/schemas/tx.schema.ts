@@ -16,6 +16,9 @@ export class TxPayload {
 
   @Prop({ required: true })
   tokenIn: CoinMetadata;
+
+  @Prop({ required: true })
+  tokenOut: CoinMetadata;
 }
 
 @Schema({ timestamps: true, collection: 'tx' })
