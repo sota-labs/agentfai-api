@@ -20,10 +20,15 @@
       "root": "src",
       "entryFile": "starters/agent/agent.seeder"
     },
-    "test": {
+    "buy-tester": {
       "type": "application",
       "root": "src",
-      "entryFile": "starters/test.starter"
+      "entryFile": "starters/buy.tester"
+    },
+    "sell-tester": {
+      "type": "application",
+      "root": "src",
+      "entryFile": "starters/sell.tester"
     }
   }
 }
