@@ -1,8 +1,7 @@
 // Replace with your server URL and port
 const socketUrl = 'http://localhost:3000';
-const token =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxMjYyOTE1MjU4IiwidXNlck5hbWUiOiJ0aGFuaGx0dCIsImRpc3BsYXlOYW1lIjoiSnVzdGluIiwiaWFwIjpudWxsLCJpYXQiOjE3Mzg2NjE0OTgsImV4cCI6MTc0MTI1MzQ5OH0.PAwHc95AYwD8FFAeiyPFqadONdhglgACkiOuHuCulSE';
-const userId = '1262915258';
+const token = 'jwt';
+const userId = 'userId';
 
 const socket = io(socketUrl, {
   transports: ['websocket'],

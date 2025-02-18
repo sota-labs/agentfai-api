@@ -4,7 +4,10 @@
   "sourceRoot": "src",
   "compilerOptions": {
     "deleteOutDir": true,
-    "assets": ["**/*.hbs", "**/*.png"]
+    "assets": [
+      "**/*.hbs",
+      "**/*.png"
+    ]
   },
   "projects": {
     "api": {
@@ -16,16 +19,6 @@
       "type": "application",
       "root": "src",
       "entryFile": "starters/agent/agent.seeder"
-    },
-    "buy-tester": {
-      "type": "application",
-      "root": "src",
-      "entryFile": "starters/buy.tester"
-    },
-    "sell-tester": {
-      "type": "application",
-      "root": "src",
-      "entryFile": "starters/sell.tester"
     },
     "buy": {
       "type": "application",

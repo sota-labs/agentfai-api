@@ -6,7 +6,7 @@ import { OrderBuyDocument } from 'modules/order/schemas/order-buy.schema';
 import { OrderSellDocument } from 'modules/order/schemas/order-sell.schema';
 import { Tx } from 'modules/tx/schemas/tx.schema';
 
-export const transferOrderBuyToTx = (
+export const transformOrderBuyToTx = (
   orderBuy: OrderBuyDocument,
   txResult: SuiTransactionBlockResponse,
   txHash: string,
@@ -17,7 +17,7 @@ export const transferOrderBuyToTx = (
   const tx = new Tx();
   tx.userId = orderBuy.userId;
   tx.type = EOrderSide.BUY;
-  tx.requestId = orderBuy._id.toString();
+  tx.requestId = orderBuy.requestId;
   tx.payload = {
     walletAddress: orderBuy.walletAddress,
     poolId: orderBuy.poolId,
@@ -32,7 +32,7 @@ export const transferOrderBuyToTx = (
   return tx;
 };
 
-export const transferOrderSellToTx = (
+export const transformOrderSellToTx = (
   orderSell: OrderSellDocument,
   txResult: SuiTransactionBlockResponse,
   txHash: string,
@@ -43,7 +43,7 @@ export const transferOrderSellToTx = (
   const tx = new Tx();
   tx.userId = orderSell.userId;
   tx.type = EOrderSide.SELL;
-  tx.requestId = orderSell._id.toString();
+  tx.requestId = orderSell.requestId;
   tx.payload = {
     walletAddress: orderSell.walletAddress,
     poolId: orderSell.poolId,

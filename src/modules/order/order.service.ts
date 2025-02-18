@@ -13,7 +13,7 @@ import { SuiClientUtils } from 'common/utils/onchain/sui-client';
 import { TimeUtils } from 'common/utils/time.utils';
 import { CoinService } from 'modules/coin/coin.service';
 import { OrderResDto } from 'modules/order/dtos/res.dto';
-import { transferOrderBuyToTx, transferOrderSellToTx } from 'modules/order/order.helper';
+import { transformOrderBuyToTx, transformOrderSellToTx } from 'modules/order/order.helper';
 import { OrderBuy, OrderBuyDocument, OrderBuyStatus } from 'modules/order/schemas/order-buy.schema';
 import { OrderSell, OrderSellDocument, OrderSellStatus } from 'modules/order/schemas/order-sell.schema';
 import { RaidenxProvider } from 'modules/shared/providers';
@@ -101,7 +101,7 @@ export class OrderService {
       poolId: params.poolId,
       amountIn: params.amountIn,
       slippage: params.slippage ?? 100,
-      uniqueId: uniqueId.toString(),
+      orderId: uniqueId.toString(),
     });
 
     const txBuy = await dexInstance.buildBuyTransaction(txBuyParams);
@@ -121,14 +121,14 @@ export class OrderService {
           txData,
           timestamp: TimeUtils.nowInSeconds(),
           status: OrderBuyStatus.PENDING,
-          uniqueId,
+          requestId: uniqueId.toString(),
         },
       ],
       { session },
     );
 
     const res: IWsOrderReqPayload = {
-      requestId: orderBuy._id.toString(),
+      requestId: orderBuy.requestId,
       txData,
       orderSide: EOrderSide.BUY,
     };
@@ -142,9 +142,13 @@ export class OrderService {
     params: { userId: string; requestId: string; signature: string },
     session: ClientSession,
   ): Promise<OrderBuyDocument> {
-    const orderBuyRequest = await this.orderBuyModel.findById({ _id: params.requestId, userId: params.userId }, null, {
-      session,
-    });
+    const orderBuyRequest = await this.orderBuyModel.findOne(
+      { requestId: params.requestId, userId: params.userId },
+      null,
+      {
+        session,
+      },
+    );
     if (!orderBuyRequest) {
       throw new Error('OrderBuyRequest not found');
     }
@@ -159,11 +163,15 @@ export class OrderService {
       status = OrderBuyStatus.FAILED;
     }
 
-    const orderBuy = await this.orderBuyModel.findByIdAndUpdate(
-      { _id: params.requestId },
+    const orderBuy = await this.orderBuyModel.findOneAndUpdate(
+      { requestId: params.requestId },
       { txHash, status },
-      { session },
+      { session, new: true },
     );
+
+    // save tx
+    const tx = transformOrderBuyToTx(orderBuyRequest, txResult, txHash);
+    await this.txService.createTx(tx, session);
 
     const wsOrderResultPayload: IWsOrderResultPayload = {
       requestId: params.requestId,
@@ -173,15 +181,11 @@ export class OrderService {
     };
     this.socketEmitterService.emitToUser(orderBuy.userId, SocketEvent.ORDER_RESULT, wsOrderResultPayload);
 
-    // save tx
-    const tx = transferOrderBuyToTx(orderBuyRequest, txResult, txHash);
-    await this.txService.createTx(tx, session);
-
     return orderBuy;
   }
 
   async getBuyByUserId(userId: string, requestId: string): Promise<OrderBuyDocument> {
-    const orderBuyRequest = await this.orderBuyModel.findOne({ _id: requestId, userId });
+    const orderBuyRequest = await this.orderBuyModel.findOne({ requestId, userId });
     if (!orderBuyRequest) {
       throw new NotFoundException('OrderBuyRequest not found');
     }
@@ -256,7 +260,7 @@ export class OrderService {
       poolId: params.poolId,
       amountIn: amountIn,
       slippage: params.slippage ?? 100,
-      uniqueId: uniqueId.toString(),
+      orderId: uniqueId.toString(),
     });
 
     const txSell = await dexInstance.buildSellTransaction(txSellParams);
@@ -266,6 +270,7 @@ export class OrderService {
     const [orderSell] = await this.orderSellModel.create(
       [
         {
+          requestId: uniqueId.toString(),
           userId: params.userId,
           walletAddress: params.walletAddress,
           poolId: params.poolId,
@@ -277,14 +282,13 @@ export class OrderService {
           txData,
           timestamp: TimeUtils.nowInSeconds(),
           status: OrderSellStatus.PENDING,
-          uniqueId,
         },
       ],
       { session },
     );
 
     const res: IWsOrderReqPayload = {
-      requestId: orderSell._id.toString(),
+      requestId: orderSell.requestId,
       txData,
       orderSide: EOrderSide.SELL,
     };
@@ -302,8 +306,8 @@ export class OrderService {
     },
     session: ClientSession,
   ): Promise<OrderSellDocument> {
-    const orderSellRequest = await this.orderSellModel.findById(
-      { _id: params.requestId, userId: params.userId },
+    const orderSellRequest = await this.orderSellModel.findOne(
+      { requestId: params.requestId, userId: params.userId },
       null,
       { session },
     );
@@ -321,11 +325,15 @@ export class OrderService {
       status = OrderSellStatus.FAILED;
     }
 
-    const orderSell = await this.orderSellModel.findByIdAndUpdate(
-      { _id: params.requestId },
+    const orderSell = await this.orderSellModel.findOneAndUpdate(
+      { requestId: params.requestId },
       { txHash, status },
-      { session },
+      { session, new: true },
     );
+
+    // save tx
+    const tx = transformOrderSellToTx(orderSellRequest, txResult, txHash);
+    await this.txService.createTx(tx, session);
 
     const wsOrderResultPayload: IWsOrderResultPayload = {
       requestId: params.requestId,
@@ -335,15 +343,11 @@ export class OrderService {
     };
     this.socketEmitterService.emitToUser(orderSellRequest.userId, SocketEvent.ORDER_RESULT, wsOrderResultPayload);
 
-    // save tx
-    const tx = transferOrderSellToTx(orderSellRequest, txResult, txHash);
-    await this.txService.createTx(tx, session);
-
     return orderSell;
   }
 
   async getSellByUserId(userId: string, requestId: string): Promise<OrderSellDocument> {
-    const orderSellRequest = await this.orderSellModel.findOne({ _id: requestId, userId });
+    const orderSellRequest = await this.orderSellModel.findOne({ requestId, userId });
     if (!orderSellRequest) {
       throw new NotFoundException('OrderSellRequest not found');
     }

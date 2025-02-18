@@ -42,12 +42,7 @@ export class TxService {
       filter['payload.walletAddress'] = walletAddress;
     }
 
-    const [paginateResult, totalCount] = await Promise.all([
-      this.txModel.paginate({ userId, ...filter }, { ...paginate }),
-      this.txModel.countDocuments({ userId, ...filter }),
-    ]);
-
-    return { ...paginateResult, totalCount };
+    return this.txModel.paginate({ userId, ...filter }, { ...paginate });
   }
 
   async createTx(tx: Tx, session?: ClientSession) {

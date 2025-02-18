@@ -2,12 +2,12 @@ import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectConnection } from '@nestjs/mongoose';
 import { OnGatewayConnection, OnGatewayDisconnect, SubscribeMessage, WebSocketGateway } from '@nestjs/websockets';
+import { Connection } from 'mongoose';
+import { Socket } from 'socket.io';
 import { LoggerUtils } from 'common/utils/logger.utils';
 import { MongoUtils } from 'common/utils/mongo.utils';
 import { OrderService } from 'modules/order/order.service';
 import { SocketEvent } from 'modules/socket/socket.constant';
-import { Connection } from 'mongoose';
-import { Socket } from 'socket.io';
 import { EOrderSide } from 'common/constants/dex';
 import { IWsOrderSignaturePayload } from 'common/interfaces/socket';
 

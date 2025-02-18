@@ -15,6 +15,7 @@ async function buy() {
 
   const walletAddress = process.env.WALLET_ADDRESS;
   const ephemeralPrivateKey = process.env.PRIVATE_KEY;
+  const userId = process.env.USER_ID ?? 'userId';
   const poolObjectId = '0xe4ff047ec4e6cb5dec195c4c71bc435223bf0273f1473ab6a10cf6ad132bdda1';
 
   const orderRes = await orderService.buy(
@@ -22,7 +23,7 @@ async function buy() {
       walletAddress,
       poolId: poolObjectId,
       amountIn: '0.0001',
-      userId: '1262915258',
+      userId,
       slippage: 40,
     },
     null,
@@ -47,7 +48,7 @@ async function buy() {
 
   const orderBuy = await orderService.executeOrderBuy(
     {
-      userId: '1262915258',
+      userId,
       requestId: orderRes.requestId,
       signature: signedTx.signature,
     },
