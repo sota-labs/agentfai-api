@@ -23,3 +23,8 @@ export enum ETxStatus {
   SUCCESS = 'success',
   FAILED = 'failed',
 }
+
+export enum ESwapEvent {
+  BuyEvent = 'BuyEvent',
+  SellEvent = 'SellEvent',
+}

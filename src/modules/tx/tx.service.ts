@@ -15,7 +15,7 @@ export class TxService {
   ) {}
 
   async paginate(userId: string, query: GetAllTxQuery, paginate: IPagination): Promise<PaginateResult<TxDocument>> {
-    const { type, requestId, poolId, tokenSymbol, txHash, walletAddress } = query;
+    const { type, requestId, poolId, tokenSymbol, txHash, walletAddress, dex } = query;
     const filter = {} as Partial<FilterQuery<TxDocument>>;
 
     if (type) {
@@ -27,7 +27,7 @@ export class TxService {
     }
 
     if (poolId) {
-      filter.payload.poolId = poolId;
+      filter['payload.poolId'] = poolId;
     }
 
     if (tokenSymbol) {
@@ -40,6 +40,10 @@ export class TxService {
 
     if (walletAddress) {
       filter['payload.walletAddress'] = walletAddress;
+    }
+
+    if (dex) {
+      filter['payload.dex'] = dex;
     }
 
     return this.txModel.paginate({ userId, ...filter }, { ...paginate });

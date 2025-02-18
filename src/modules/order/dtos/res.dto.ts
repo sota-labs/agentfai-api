@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Exclude, Expose, Transform, Type } from 'class-transformer';
-import { EOrderSide } from 'common/constants/dex';
+import { EDex, EOrderSide } from 'common/constants/dex';
 import { CoinMetadata } from 'modules/coin/schemas/coin-metadata';
 
 @Exclude()
@@ -40,6 +40,10 @@ export class OrderBuyResDto {
   poolId: string;
 
   @Expose()
+  @ApiProperty({ required: true, description: 'Dex' })
+  dex: EDex;
+
+  @Expose()
   @ApiProperty({ required: true, description: 'Amount in' })
   @Type(() => String)
   @Transform(({ value }) => value.toString())
@@ -76,6 +80,10 @@ export class OrderSellResDto {
   @Expose()
   @ApiProperty({ required: true, description: 'Pool ID' })
   poolId: string;
+
+  @Expose()
+  @ApiProperty({ required: true, description: 'Dex' })
+  dex: EDex;
 
   @Expose()
   @ApiProperty({ required: true, description: 'Percent' })
