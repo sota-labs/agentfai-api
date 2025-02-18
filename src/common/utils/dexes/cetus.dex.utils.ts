@@ -101,11 +101,7 @@ export class CetusDexUtils extends BaseDexUtils implements IDexUtils {
       }),
     });
 
-    const { amountOut, amountIn } = SuiClientUtils.extractTokenAmount(simulateResponse);
-    console.log('========= amountOut =========');
-    console.log(amountOut);
-    console.log('========= amountIn =========');
-    console.log(amountIn);
+    const { amountOut } = SuiClientUtils.extractTokenAmount(simulateResponse);
 
     const minAmountOut = new BigNumber(amountOut)
       .multipliedBy(1 - params.slippage / 100)
