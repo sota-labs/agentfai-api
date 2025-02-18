@@ -12,6 +12,10 @@ import { MessageSchema } from 'modules/message/message.schema';
 import { Message } from 'modules/message/message.schema';
 import * as providers from 'modules/shared/providers';
 import { autoImport } from 'common/utils/common.utils';
+import { Tx } from 'modules/tx/schemas/tx.schema';
+import { TxSchema } from 'modules/tx/schemas/tx.schema';
+import { OrderBuySchema } from 'modules/order/schemas/order-buy.schema';
+import { OrderBuy } from 'modules/order/schemas/order-buy.schema';
 
 @Module({
   imports: [
@@ -56,6 +60,8 @@ import { autoImport } from 'common/utils/common.utils';
     MongooseModule.forFeature([
       { name: Thread.name, schema: ThreadSchema },
       { name: Message.name, schema: MessageSchema },
+      { name: OrderBuy.name, schema: OrderBuySchema },
+      { name: Tx.name, schema: TxSchema },
     ]),
   ],
   providers: [...autoImport(providers)],

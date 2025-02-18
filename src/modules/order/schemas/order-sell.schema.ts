@@ -14,6 +14,9 @@ export type OrderSellDocument = OrderSell & Document;
 
 @Schema({ timestamps: true, collection: 'order-sell' })
 export class OrderSell {
+  @Prop({ required: true, unique: true })
+  requestId: string;
+
   @Prop({ required: true })
   walletAddress: string;
 
@@ -35,6 +38,9 @@ export class OrderSell {
   @Prop({ required: true })
   tokenIn: CoinMetadata;
 
+  @Prop({ required: true })
+  tokenOut: CoinMetadata;
+
   @Prop()
   txHash: string;
 
@@ -50,4 +56,5 @@ export class OrderSell {
 
 export const OrderSellSchema = SchemaFactory.createForClass(OrderSell);
 OrderSellSchema.index({ txHash: 1 }, { unique: true, partialFilterExpression: { txHash: { $exists: true } } });
+OrderSellSchema.index({ requestId: 1 }, { unique: true });
 OrderSellSchema.plugin(MongoosePaginate);

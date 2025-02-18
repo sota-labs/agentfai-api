@@ -1,27 +1,34 @@
 import { Inject, Injectable, NotFoundException, forwardRef } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import BigNumber from 'bignumber.js';
 import { Decimal128 } from 'bson';
 import { ClientSession, Model } from 'mongoose';
-import BigNumber from 'bignumber.js';
+import { Snowflake } from 'nodejs-snowflake';
+import { EDex, EOrderSide } from 'common/constants/dex';
+import { IWsOrderReqPayload, IWsOrderResultPayload } from 'common/interfaces/socket';
+import { TCoinMetadata } from 'common/types/coin.type';
+import { FactoryDexUtils } from 'common/utils/dexes/factory.dex.utils';
 import { LoggerUtils } from 'common/utils/logger.utils';
 import { SuiClientUtils } from 'common/utils/onchain/sui-client';
 import { TimeUtils } from 'common/utils/time.utils';
 import { CoinService } from 'modules/coin/coin.service';
+import { OrderResDto } from 'modules/order/dtos/res.dto';
+import { transformOrderBuyToTx, transformOrderSellToTx } from 'modules/order/order.helper';
+import { OrderBuy, OrderBuyDocument, OrderBuyStatus } from 'modules/order/schemas/order-buy.schema';
+import { OrderSell, OrderSellDocument, OrderSellStatus } from 'modules/order/schemas/order-sell.schema';
+import { RaidenxProvider } from 'modules/shared/providers';
 import { SocketEmitterService } from 'modules/socket/socket-emitter.service';
 import { SocketEvent } from 'modules/socket/socket.constant';
-import { OrderResDto } from 'modules/order/dtos/res.dto';
-import { OrderBuy, OrderBuyDocument, OrderBuyStatus } from 'modules/order/schemas/order-buy.schema';
+import { TxService } from 'modules/tx/tx.service';
 import { UserService } from 'modules/user/user.service';
-import { RaidenxProvider } from 'modules/shared/providers';
-import { TCoinMetadata } from 'common/types/coin.type';
-import { FactoryDexUtils } from 'common/utils/dexes/factory.dex.utils';
-import { EDex, EOrderSide } from 'common/constants/dex';
-import { OrderSell, OrderSellStatus, OrderSellDocument } from 'modules/order/schemas/order-sell.schema';
-import { IWsOrderResultPayload } from 'common/interfaces/socket';
 
 @Injectable()
 export class OrderService {
   private readonly logger = LoggerUtils.get(OrderService.name);
+  private readonly snowflake = new Snowflake({
+    custom_epoch: new Date().getTime(),
+  });
+
   constructor(
     @InjectModel(OrderBuy.name) private readonly orderBuyModel: Model<OrderBuyDocument>,
     @InjectModel(OrderSell.name) private readonly orderSellModel: Model<OrderSellDocument>,
@@ -30,6 +37,7 @@ export class OrderService {
     @Inject(forwardRef(() => SocketEmitterService))
     private readonly socketEmitterService: SocketEmitterService,
     private readonly raidenxProvider: RaidenxProvider,
+    private readonly txService: TxService,
   ) {}
 
   async buyByUserId(
@@ -85,6 +93,7 @@ export class OrderService {
     };
 
     const dexInstance = FactoryDexUtils.getDexInstance(poolInfo.dex.dex as EDex);
+    const uniqueId = this.snowflake.getUniqueID();
     const txBuyParams = await dexInstance.buildBuyParams({
       walletAddress: params.walletAddress,
       tokenIn,
@@ -92,6 +101,7 @@ export class OrderService {
       poolId: params.poolId,
       amountIn: params.amountIn,
       slippage: params.slippage ?? 100,
+      orderId: uniqueId.toString(),
     });
 
     const txBuy = await dexInstance.buildBuyTransaction(txBuyParams);
@@ -107,21 +117,23 @@ export class OrderService {
           amountIn: new Decimal128(params.amountIn),
           slippage: params.slippage,
           tokenIn,
+          tokenOut,
           txData,
           timestamp: TimeUtils.nowInSeconds(),
           status: OrderBuyStatus.PENDING,
+          requestId: uniqueId.toString(),
         },
       ],
       { session },
     );
 
-    const res = {
-      requestId: orderBuy._id.toString(),
+    const res: IWsOrderReqPayload = {
+      requestId: orderBuy.requestId,
       txData,
       orderSide: EOrderSide.BUY,
     };
 
-    this.socketEmitterService.emit(SocketEvent.ORDER_REQUEST, res);
+    this.socketEmitterService.emitToUser(params.userId, SocketEvent.ORDER_REQUEST, res);
 
     return res;
   }
@@ -130,9 +142,13 @@ export class OrderService {
     params: { userId: string; requestId: string; signature: string },
     session: ClientSession,
   ): Promise<OrderBuyDocument> {
-    const orderBuyRequest = await this.orderBuyModel.findById({ _id: params.requestId, userId: params.userId }, null, {
-      session,
-    });
+    const orderBuyRequest = await this.orderBuyModel.findOne(
+      { requestId: params.requestId, userId: params.userId },
+      null,
+      {
+        session,
+      },
+    );
     if (!orderBuyRequest) {
       throw new Error('OrderBuyRequest not found');
     }
@@ -147,11 +163,15 @@ export class OrderService {
       status = OrderBuyStatus.FAILED;
     }
 
-    const orderBuy = await this.orderBuyModel.findByIdAndUpdate(
-      { _id: params.requestId },
+    const orderBuy = await this.orderBuyModel.findOneAndUpdate(
+      { requestId: params.requestId },
       { txHash, status },
-      { session },
+      { session, new: true },
     );
+
+    // save tx
+    const tx = transformOrderBuyToTx(orderBuyRequest, txResult, txHash);
+    await this.txService.createTx(tx, session);
 
     const wsOrderResultPayload: IWsOrderResultPayload = {
       requestId: params.requestId,
@@ -165,7 +185,7 @@ export class OrderService {
   }
 
   async getBuyByUserId(userId: string, requestId: string): Promise<OrderBuyDocument> {
-    const orderBuyRequest = await this.orderBuyModel.findOne({ _id: requestId, userId });
+    const orderBuyRequest = await this.orderBuyModel.findOne({ requestId, userId });
     if (!orderBuyRequest) {
       throw new NotFoundException('OrderBuyRequest not found');
     }
@@ -232,6 +252,7 @@ export class OrderService {
       .decimalPlaces(tokenIn.decimals, BigNumber.ROUND_FLOOR)
       .toString();
 
+    const uniqueId = this.snowflake.getUniqueID();
     const txSellParams = await dexInstance.buildSellParams({
       walletAddress: params.walletAddress,
       tokenIn,
@@ -239,6 +260,7 @@ export class OrderService {
       poolId: params.poolId,
       amountIn: amountIn,
       slippage: params.slippage ?? 100,
+      orderId: uniqueId.toString(),
     });
 
     const txSell = await dexInstance.buildSellTransaction(txSellParams);
@@ -248,6 +270,7 @@ export class OrderService {
     const [orderSell] = await this.orderSellModel.create(
       [
         {
+          requestId: uniqueId.toString(),
           userId: params.userId,
           walletAddress: params.walletAddress,
           poolId: params.poolId,
@@ -255,6 +278,7 @@ export class OrderService {
           amountIn: new Decimal128(amountIn),
           slippage: params.slippage,
           tokenIn,
+          tokenOut,
           txData,
           timestamp: TimeUtils.nowInSeconds(),
           status: OrderSellStatus.PENDING,
@@ -263,13 +287,13 @@ export class OrderService {
       { session },
     );
 
-    const res = {
-      requestId: orderSell._id.toString(),
+    const res: IWsOrderReqPayload = {
+      requestId: orderSell.requestId,
       txData,
       orderSide: EOrderSide.SELL,
     };
 
-    this.socketEmitterService.emit(SocketEvent.ORDER_REQUEST, res);
+    this.socketEmitterService.emitToUser(params.userId, SocketEvent.ORDER_REQUEST, res);
 
     return res;
   }
@@ -282,8 +306,8 @@ export class OrderService {
     },
     session: ClientSession,
   ): Promise<OrderSellDocument> {
-    const orderSellRequest = await this.orderSellModel.findById(
-      { _id: params.requestId, userId: params.userId },
+    const orderSellRequest = await this.orderSellModel.findOne(
+      { requestId: params.requestId, userId: params.userId },
       null,
       { session },
     );
@@ -301,11 +325,15 @@ export class OrderService {
       status = OrderSellStatus.FAILED;
     }
 
-    const orderSell = await this.orderSellModel.findByIdAndUpdate(
-      { _id: params.requestId },
+    const orderSell = await this.orderSellModel.findOneAndUpdate(
+      { requestId: params.requestId },
       { txHash, status },
-      { session },
+      { session, new: true },
     );
+
+    // save tx
+    const tx = transformOrderSellToTx(orderSellRequest, txResult, txHash);
+    await this.txService.createTx(tx, session);
 
     const wsOrderResultPayload: IWsOrderResultPayload = {
       requestId: params.requestId,
@@ -313,13 +341,13 @@ export class OrderService {
       txHash,
       status,
     };
-    this.socketEmitterService.emitToUser(orderSell.userId, SocketEvent.ORDER_RESULT, wsOrderResultPayload);
+    this.socketEmitterService.emitToUser(orderSellRequest.userId, SocketEvent.ORDER_RESULT, wsOrderResultPayload);
 
     return orderSell;
   }
 
   async getSellByUserId(userId: string, requestId: string): Promise<OrderSellDocument> {
-    const orderSellRequest = await this.orderSellModel.findOne({ _id: requestId, userId });
+    const orderSellRequest = await this.orderSellModel.findOne({ requestId, userId });
     if (!orderSellRequest) {
       throw new NotFoundException('OrderSellRequest not found');
     }

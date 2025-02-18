@@ -17,3 +17,9 @@ export enum EOrderSide {
   BUY = 'buy',
   SELL = 'sell',
 }
+
+export enum ETxStatus {
+  PENDING = 'pending',
+  SUCCESS = 'success',
+  FAILED = 'failed',
+}

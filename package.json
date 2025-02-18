@@ -59,6 +59,7 @@
     "nanoid": "^3.3.4",
     "nestjs-redis": "1.2.2",
     "node-telegram-bot-api": "^0.66.0",
+    "nodejs-snowflake": "^2.0.1",
     "qr-code-styling": "^1.8.4",
     "redis": "^4.7.0",
     "reflect-metadata": "^0.2.0",

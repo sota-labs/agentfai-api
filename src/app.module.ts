@@ -14,6 +14,7 @@ import { UserModule } from 'modules/user/user.module';
 import { RaidenxModule } from 'modules/raidenx/raidenx.module';
 import { CoinModule } from 'modules/coin/coin.module';
 import { OrderModule } from 'modules/order/order.module';
+import { TxModule } from 'modules/tx/tx.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { OrderModule } from 'modules/order/order.module';
     RaidenxModule,
     CoinModule,
     OrderModule,
+    TxModule,
   ],
   controllers: [AppController],
   providers: [

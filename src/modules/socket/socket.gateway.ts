@@ -53,10 +53,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   private _extractTokenFromSocket(client: Socket): string | undefined {
-    const authHeader =
-      client.handshake.query?.authorization ||
-      client.handshake.headers['authorization'] ||
-      client.handshake.auth['authorization'];
+    const authHeader = client.handshake.query?.authorization || client.handshake.auth['authorization'];
 
     if (typeof authHeader !== 'string') {
       return undefined;

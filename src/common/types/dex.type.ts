@@ -8,4 +8,5 @@ export type TSwapParams = {
   amountIn: string;
   slippage: number;
   orderId?: string;
+  uniqueId?: string;
 };
