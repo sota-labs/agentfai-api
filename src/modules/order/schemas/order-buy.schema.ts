@@ -3,6 +3,7 @@ import { CoinMetadata } from 'modules/coin/schemas/coin-metadata';
 import { Document } from 'mongoose';
 import { Decimal128 } from 'bson';
 import MongoosePaginate from 'mongoose-paginate-v2';
+import { EDex } from 'common/constants/dex';
 
 export enum OrderBuyStatus {
   PENDING = 'pending',
@@ -25,6 +26,9 @@ export class OrderBuy {
 
   @Prop({ required: true })
   poolId: string;
+
+  @Prop({ required: true })
+  dex: EDex;
 
   @Prop({ required: true })
   amountIn: Decimal128;

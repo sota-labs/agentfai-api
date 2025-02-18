@@ -2,7 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Decimal128 } from 'bson';
 import { Document } from 'mongoose';
 import MongoosePaginate from 'mongoose-paginate-v2';
-import { EOrderSide, ETxStatus } from 'common/constants/dex';
+import { EOrderSide, ETxStatus, EDex } from 'common/constants/dex';
 import { CoinMetadata } from 'modules/coin/schemas/coin-metadata';
 
 export type TxDocument = Tx & Document;
@@ -13,6 +13,9 @@ export class TxPayload {
 
   @Prop({ required: true })
   poolId: string;
+
+  @Prop({ required: true })
+  dex: EDex;
 
   @Prop({ required: true })
   tokenIn: CoinMetadata;

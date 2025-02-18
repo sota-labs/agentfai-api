@@ -3,7 +3,7 @@ import { Exclude, Expose, Transform, Type } from 'class-transformer';
 import { IsEnum, IsOptional } from 'class-validator';
 import { BasePaginationResDto } from 'common/dtos/paginate.dto';
 import { CoinMetadata } from 'modules/coin/schemas/coin-metadata';
-import { EOrderSide, ETxStatus } from 'common/constants/dex';
+import { EDex, EOrderSide, ETxStatus } from 'common/constants/dex';
 
 export class GetAllTxQuery {
   @ApiProperty({
@@ -32,6 +32,17 @@ export class GetAllTxQuery {
   })
   @IsOptional()
   poolId?: string;
+
+  @ApiProperty({
+    enum: EDex,
+    enumName: 'EDex',
+    example: '',
+    description: 'The dex of the tx',
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(EDex)
+  dex?: EDex;
 
   @ApiProperty({
     description: 'The tx hash of the tx',
