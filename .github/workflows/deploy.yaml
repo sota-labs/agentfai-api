@@ -45,7 +45,7 @@ jobs:
         run: |
           git config --global user.email "GitOps@sota-labs.com"
           git config --global user.name "GitOps"
-          git clone --branch master https://GitOps:$CICD_TOKEN@$K8S_REPO manifest
+          git clone --branch main https://GitOps:$CICD_TOKEN@$K8S_REPO manifest
           cd manifest
           sed -i "s|newTag:.*|newTag: ${{ env.IMAGE_TAG}}|g" ./applications/api/overlays/${{ inputs.env }}/kustomization.yaml
           git add  ./applications/api/overlays/${{ inputs.env }}/kustomization.yaml
