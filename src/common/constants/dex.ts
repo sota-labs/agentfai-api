@@ -27,4 +27,9 @@ export enum ETxStatus {
 export enum ESwapEvent {
   BuyEvent = 'BuyEvent',
   SellEvent = 'SellEvent',
+  SwapEvent = 'SwapEvent',
+}
+
+export enum ETransactionModule {
+  SevenKFun = 'fun_7k_router',
 }

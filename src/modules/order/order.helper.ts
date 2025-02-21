@@ -1,5 +1,6 @@
 import { SuiTransactionBlockResponse } from '@mysten/sui/dist/cjs/client/types/generated';
-import { EOrderSide, ESwapEvent, ETxStatus } from 'common/constants/dex';
+import { EOrderSide, ESwapEvent, ETransactionModule, ETxStatus } from 'common/constants/dex';
+import { TokenDto } from 'common/dtos/raidenx.dto';
 import { NumericUtils } from 'common/utils/numeric.utils';
 import { RouterSwapEvent } from 'common/utils/onchain/sui-client';
 import { TokenUtils } from 'common/utils/token.utils';
@@ -65,13 +66,34 @@ export const getAmountSwapEvent = (response: SuiTransactionBlockResponse): { amo
   );
 
   if (!swapEvent) {
-    throw new Error('Swap event not found');
+    throw new Error('Failed to get swap event');
   }
 
-  const swapEventData = swapEvent.parsedJson as RouterSwapEvent;
+  const buySellEventData = swapEvent.parsedJson as RouterSwapEvent;
+  let amountOut = buySellEventData.amount_out;
+
+  // check locked pool if dex = sevenkfun
+  if (swapEvent.transactionModule === ETransactionModule.SevenKFun) {
+    const lockedPoolInfo = response.events.find((event) => event.type.includes(ESwapEvent.SwapEvent))?.parsedJson as {
+      amount_in: string;
+      amount_out: string;
+      locked_amount: string;
+    };
+    if (!lockedPoolInfo) {
+      throw new Error('Locked pool info not found');
+    }
+
+    if (!NumericUtils.isZero(lockedPoolInfo.locked_amount)) {
+      amountOut = lockedPoolInfo.locked_amount;
+    }
+  }
 
   return {
-    amountOut: swapEventData.amount_out,
-    amountIn: swapEventData.amount_in,
+    amountOut,
+    amountIn: buySellEventData.amount_in,
   };
+};
+
+export const isLockedToken = (token: TokenDto): boolean => {
+  return !!token?.lockTimestamp && NumericUtils.isGt(token.lockTimestamp, new Date().getTime());
 };
