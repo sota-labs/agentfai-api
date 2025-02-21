@@ -8,18 +8,20 @@ import { BaseDexUtils } from 'common/utils/dexes/base.dex.utils';
 import { suiClient } from 'common/utils/onchain/sui-client';
 import { OrderService } from 'modules/order/order.service';
 import { AppModule } from '../app.module';
-import { OrderBuyResDto } from 'modules/order/dtos/res.dto';
 import { plainToClass } from 'class-transformer';
+import { POOL_ID_EXAMPLE } from 'examples/config-test.example';
+import { TxService } from 'modules/tx/tx.service';
+import { TxDtoResponse } from 'modules/tx/dtos/get-all-txs.dto';
 
 async function buy() {
   const app = await NestFactory.create(AppModule);
   const orderService = app.get(OrderService);
+  const txService = app.get(TxService);
 
   const walletAddress = process.env.WALLET_ADDRESS;
   const ephemeralPrivateKey = process.env.PRIVATE_KEY;
   const userId = process.env.USER_ID ?? 'userId';
-  // const poolObjectId = '0xe4ff047ec4e6cb5dec195c4c71bc435223bf0273f1473ab6a10cf6ad132bdda1'; // cetus
-  const poolObjectId = '0647154bedcbb70bececed3fd2090c70798a9602770fb4dfb1cf13371fa45c33'; // turbosfun
+  const poolObjectId = POOL_ID_EXAMPLE;
 
   const orderRes = await orderService.buy(
     {
@@ -47,7 +49,7 @@ async function buy() {
   const signedTx = await baseDexUtils.createUserSignature(tx2, ephemeralPrivateKey, suiClient);
 
   console.log('========= signedTx =========');
-  console.log(signedTx);
+  // console.log(signedTx);
 
   const orderBuy = await orderService.executeOrderBuy(
     {
@@ -58,7 +60,9 @@ async function buy() {
     null,
   );
   console.log('========= orderBuy =========');
-  console.log(plainToClass(OrderBuyResDto, orderBuy));
+  const tx = await txService.findOneByRequestId(orderBuy.requestId);
+  console.log('========= tx =========');
+  console.log(plainToClass(TxDtoResponse, tx));
 }
 
 buy();

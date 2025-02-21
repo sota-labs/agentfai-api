@@ -49,6 +49,10 @@ export class TxService {
     return this.txModel.paginate({ userId, ...filter }, { ...paginate });
   }
 
+  async findOneByRequestId(requestId: string) {
+    return this.txModel.findOne({ requestId });
+  }
+
   async createTx(tx: Tx, session?: ClientSession) {
     return this.txModel.create([tx], { session });
   }

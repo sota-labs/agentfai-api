@@ -110,6 +110,8 @@ export class NumericUtils {
     return `${input.toFixed(fixed)}`;
   }
 
+  static isZero = (value: TNumericValue): boolean => NumericUtils.toBigNumber(value).eq(0);
+
   static isGt = (value1: TNumericValue, value2: TNumericValue): boolean =>
     NumericUtils.toBigNumber(value1).gt(NumericUtils.toBigNumber(value2));
 
@@ -151,4 +153,9 @@ export class NumericUtils {
 
     return `${start}...${end}`;
   }
+
+  static exactAmountIn = (amountIn: TNumericValue, decimals: number): BigNumber =>
+    NumericUtils.toBigNumber(amountIn)
+      .multipliedBy(10 ** decimals)
+      .integerValue(BigNumber.ROUND_FLOOR);
 }

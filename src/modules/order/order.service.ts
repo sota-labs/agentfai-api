@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException, forwardRef } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException, forwardRef } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import BigNumber from 'bignumber.js';
 import { Decimal128 } from 'bson';
@@ -13,7 +13,7 @@ import { SuiClientUtils } from 'common/utils/onchain/sui-client';
 import { TimeUtils } from 'common/utils/time.utils';
 import { CoinService } from 'modules/coin/coin.service';
 import { OrderResDto } from 'modules/order/dtos/res.dto';
-import { transformOrderBuyToTx, transformOrderSellToTx } from 'modules/order/order.helper';
+import { isLockedToken, transformOrderBuyToTx, transformOrderSellToTx } from 'modules/order/order.helper';
 import { OrderBuy, OrderBuyDocument, OrderBuyStatus } from 'modules/order/schemas/order-buy.schema';
 import { OrderSell, OrderSellDocument, OrderSellStatus } from 'modules/order/schemas/order-sell.schema';
 import { RaidenxProvider } from 'modules/shared/providers';
@@ -243,6 +243,14 @@ export class OrderService {
       name: poolInfo.tokenQuote.name,
       symbol: poolInfo.tokenQuote.symbol,
     };
+
+    if (isLockedToken(poolInfo.tokenBase)) {
+      throw new BadRequestException(
+        `${poolInfo.tokenBase.symbol} is locked. Please wait for the token to be unlocked before selling at ${new Date(
+          poolInfo.tokenBase.lockTimestamp,
+        ).toLocaleString()}`,
+      );
+    }
 
     const dexInstance = FactoryDexUtils.getDexInstance(poolInfo.dex.dex as EDex);
     const totalAmountIn = await this.coinService.getCoinBalance(params.walletAddress, tokenIn.address);
