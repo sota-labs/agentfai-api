@@ -63,7 +63,7 @@ const RaidenxConfig = registerAs(raidenxRegToken, () => ({
       configObjectId: '0x03db251ba509a8d5d8777b6338836082335d93eecbdd09a11e190a1cff51c352',
     },
     suiaifun: {
-      package: '0xd285c96690ddcee3245d32f356464520362f7e7df0ffc98ff1d3a310d1421e38',
+      package: '0x4bbfd1c0ee1ef98648abbd8a046315ff72de39a55eba39c0635f90df37603cb2',
       module: 'suiai_router',
       feeObjectId: '',
       configObjectId: '0xd9b810f0d1f4c024dd7190bac834de764cb09054246f86981cb63d36ae51bf5c',

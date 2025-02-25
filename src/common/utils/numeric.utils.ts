@@ -112,6 +112,9 @@ export class NumericUtils {
 
   static isZero = (value: TNumericValue): boolean => NumericUtils.toBigNumber(value).eq(0);
 
+  static isEqual = (value1: TNumericValue, value2: TNumericValue): boolean =>
+    NumericUtils.toBigNumber(value1).eq(NumericUtils.toBigNumber(value2));
+
   static isGt = (value1: TNumericValue, value2: TNumericValue): boolean =>
     NumericUtils.toBigNumber(value1).gt(NumericUtils.toBigNumber(value2));
 

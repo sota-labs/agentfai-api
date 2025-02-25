@@ -1,5 +1,14 @@
 import { SuiTransactionBlockResponse } from '@mysten/sui/dist/cjs/client/types/generated';
-import { EOrderSide, ESwapEvent, ETransactionModule, ETxStatus } from 'common/constants/dex';
+import {
+  EOrderSide,
+  ESwapEvent,
+  ETransactionModule,
+  ETxStatus,
+  mappingDexToTransactionModule,
+  ROUTER_BUY_EVENT,
+  ROUTER_SELL_EVENT,
+  ROUTER_SWAP_EVENT,
+} from 'common/constants/dex';
 import { TokenDto } from 'common/dtos/raidenx.dto';
 import { NumericUtils } from 'common/utils/numeric.utils';
 import { RouterSwapEvent } from 'common/utils/onchain/sui-client';
@@ -13,7 +22,11 @@ export const transformOrderBuyToTx = (
   txResult: SuiTransactionBlockResponse,
   txHash: string,
 ): Tx => {
-  const { amountOut, amountIn } = getAmountSwapEvent(txResult);
+  console.log('orderBuy: ', orderBuy);
+  const { amountOut, amountIn } = getAmountSwapEvent(txResult, {
+    isBuyBySuiToken: TokenUtils.isSuiToken(orderBuy.tokenIn.address),
+    txModule: mappingDexToTransactionModule(orderBuy.dex),
+  });
 
   const tx = new Tx();
   tx.userId = orderBuy.userId;
@@ -39,7 +52,10 @@ export const transformOrderSellToTx = (
   txResult: SuiTransactionBlockResponse,
   txHash: string,
 ): Tx => {
-  const { amountOut, amountIn } = getAmountSwapEvent(txResult);
+  const { amountOut, amountIn } = getAmountSwapEvent(txResult, {
+    isBuyBySuiToken: TokenUtils.isSuiToken(orderSell.tokenIn.address),
+    txModule: mappingDexToTransactionModule(orderSell.dex),
+  });
 
   const tx = new Tx();
   tx.userId = orderSell.userId;
@@ -60,8 +76,59 @@ export const transformOrderSellToTx = (
   return tx;
 };
 
-export const getAmountSwapEvent = (response: SuiTransactionBlockResponse): { amountOut: string; amountIn: string } => {
-  const swapEvent = response.events.find(
+export const getAmountSwapEvent = (
+  txResponse: SuiTransactionBlockResponse,
+  options?: { isBuyBySuiToken?: boolean; txModule?: ETransactionModule },
+): { amountOut: string; amountIn: string } => {
+  if (options?.txModule === ETransactionModule.Suiai && options?.isBuyBySuiToken) {
+    const buySellEventSuiToSuai = txResponse.events.find(
+      (event) =>
+        (event.type.includes(ROUTER_BUY_EVENT) || event.type.includes(ROUTER_SELL_EVENT)) &&
+        event.transactionModule == ETransactionModule.Cetus,
+    );
+
+    if (!buySellEventSuiToSuai) {
+      throw new Error('Swap event not found');
+    }
+    const amountIn = (buySellEventSuiToSuai.parsedJson as RouterSwapEvent).amount_in;
+
+    const swapEventSuaiToToken = txResponse.events.find(
+      (event) => event.type.includes(ROUTER_SWAP_EVENT) && event.transactionModule == ETransactionModule.Suiai,
+    );
+
+    if (!swapEventSuaiToToken) {
+      throw new Error('Swap event not found');
+    }
+    const amountOut = (swapEventSuaiToToken.parsedJson as any).coin_amount;
+
+    return {
+      amountOut,
+      amountIn,
+    };
+  }
+
+  // Buy with SUAI
+  if (options?.txModule === ETransactionModule.Suiai && !options?.isBuyBySuiToken) {
+    const swapEventSuaiToToken = txResponse.events.find((event) => event.type.includes(ROUTER_SWAP_EVENT));
+    const buyEventSuaiToToken = txResponse.events.find((event) => event.type.includes(ROUTER_BUY_EVENT));
+
+    if (!swapEventSuaiToToken) {
+      throw new Error('Swap event not found');
+    }
+    if (!buyEventSuaiToToken) {
+      throw new Error('Buy event not found');
+    }
+    const amountIn = (buyEventSuaiToToken.parsedJson as RouterSwapEvent).amount_in;
+    console.log('amountIn: ', amountIn);
+    const amountOut = (swapEventSuaiToToken.parsedJson as any).coin_amount;
+    console.log('amountOut: ', amountOut);
+
+    return {
+      amountOut,
+      amountIn,
+    };
+  }
+  const swapEvent = txResponse.events.find(
     (event) => event.type.includes(ESwapEvent.BuyEvent) || event.type.includes(ESwapEvent.SellEvent),
   );
 
@@ -74,7 +141,7 @@ export const getAmountSwapEvent = (response: SuiTransactionBlockResponse): { amo
 
   // check locked pool if dex = sevenkfun
   if (swapEvent.transactionModule === ETransactionModule.SevenKFun) {
-    const lockedPoolInfo = response.events.find((event) => event.type.includes(ESwapEvent.SwapEvent))?.parsedJson as {
+    const lockedPoolInfo = txResponse.events.find((event) => event.type.includes(ESwapEvent.SwapEvent))?.parsedJson as {
       amount_in: string;
       amount_out: string;
       locked_amount: string;
