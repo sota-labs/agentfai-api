@@ -26,6 +26,7 @@ export const transformOrderBuyToTx = (
   const { amountOut, amountIn } = getAmountSwapEvent(txResult, {
     isBuyBySuiToken: TokenUtils.isSuiToken(orderBuy.tokenIn.address),
     txModule: mappingDexToTransactionModule(orderBuy.dex),
+    side: EOrderSide.BUY,
   });
 
   const tx = new Tx();
@@ -55,6 +56,7 @@ export const transformOrderSellToTx = (
   const { amountOut, amountIn } = getAmountSwapEvent(txResult, {
     isBuyBySuiToken: TokenUtils.isSuiToken(orderSell.tokenIn.address),
     txModule: mappingDexToTransactionModule(orderSell.dex),
+    side: EOrderSide.SELL,
   });
 
   const tx = new Tx();
@@ -78,7 +80,7 @@ export const transformOrderSellToTx = (
 
 export const getAmountSwapEvent = (
   txResponse: SuiTransactionBlockResponse,
-  options?: { isBuyBySuiToken?: boolean; txModule?: ETransactionModule },
+  options?: { isBuyBySuiToken?: boolean; txModule?: ETransactionModule; side: EOrderSide },
 ): { amountOut: string; amountIn: string } => {
   if (options?.txModule === ETransactionModule.Suiai && options?.isBuyBySuiToken) {
     const buySellEventSuiToSuai = txResponse.events.find(
@@ -110,7 +112,9 @@ export const getAmountSwapEvent = (
   // Buy with SUAI
   if (options?.txModule === ETransactionModule.Suiai && !options?.isBuyBySuiToken) {
     const swapEventSuaiToToken = txResponse.events.find((event) => event.type.includes(ROUTER_SWAP_EVENT));
-    const buyEventSuaiToToken = txResponse.events.find((event) => event.type.includes(ROUTER_BUY_EVENT));
+    const buyEventSuaiToToken = txResponse.events.find(
+      (event) => event.type.includes(ROUTER_BUY_EVENT) || event.type.includes(ROUTER_SELL_EVENT),
+    );
 
     if (!swapEventSuaiToToken) {
       throw new Error('Swap event not found');
@@ -119,8 +123,10 @@ export const getAmountSwapEvent = (
       throw new Error('Buy event not found');
     }
     const amountIn = (buyEventSuaiToToken.parsedJson as RouterSwapEvent).amount_in;
-    console.log('amountIn: ', amountIn);
-    const amountOut = (swapEventSuaiToToken.parsedJson as any).coin_amount;
+    const amountOut =
+      options?.side === EOrderSide.BUY
+        ? (swapEventSuaiToToken.parsedJson as any).coin_amount
+        : (swapEventSuaiToToken.parsedJson as any).sui_amount;
     console.log('amountOut: ', amountOut);
 
     return {

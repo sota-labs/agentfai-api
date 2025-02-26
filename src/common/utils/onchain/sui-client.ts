@@ -11,7 +11,7 @@ import BigNumber from 'bignumber.js';
 import retry from 'async-retry';
 import AppConfig from 'config/app.config';
 import { sleep } from 'common/utils/time.utils';
-import { ETransactionModule, ROUTER_SELL_EVENT, ROUTER_SWAP_EVENT } from 'common/constants/dex';
+import { EOrderSide, ETransactionModule, ROUTER_SELL_EVENT, ROUTER_SWAP_EVENT } from 'common/constants/dex';
 import { ROUTER_BUY_EVENT } from 'common/constants/dex';
 
 const { fullnodeSuiUrl } = AppConfig();
@@ -268,6 +268,7 @@ export class SuiClientUtils {
     options?: {
       txModule?: ETransactionModule;
       isBuyBySuiToken?: boolean;
+      side: EOrderSide;
     },
   ): {
     amountOut: string;
@@ -303,7 +304,9 @@ export class SuiClientUtils {
     // Buy with SUAI
     if (options?.txModule === ETransactionModule.Suiai && !options?.isBuyBySuiToken) {
       const swapEventSuaiToToken = simulateResponse.events.find((event) => event.type.includes(ROUTER_SWAP_EVENT));
-      const buyEventSuaiToToken = simulateResponse.events.find((event) => event.type.includes(ROUTER_BUY_EVENT));
+      const buyEventSuaiToToken = simulateResponse.events.find(
+        (event) => event.type.includes(ROUTER_BUY_EVENT) || event.type.includes(ROUTER_SELL_EVENT),
+      );
 
       if (!swapEventSuaiToToken) {
         throw new Error('Swap event not found');
@@ -312,7 +315,10 @@ export class SuiClientUtils {
         throw new Error('Buy event not found');
       }
       const amountIn = (buyEventSuaiToToken.parsedJson as RouterSwapEvent).amount_in;
-      const amountOut = (swapEventSuaiToToken.parsedJson as any).coin_amount;
+      const amountOut =
+        options?.side === EOrderSide.BUY
+          ? (swapEventSuaiToToken.parsedJson as any).coin_amount
+          : (swapEventSuaiToToken.parsedJson as any).sui_amount;
 
       return {
         amountOut,

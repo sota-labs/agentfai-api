@@ -10,7 +10,7 @@ import { SUI_TOKEN_METADATA } from 'common/constants/common';
 import { TSwapParams } from 'common/types/dex.type';
 import { NumericUtils } from 'common/utils/numeric.utils';
 import { TokenUtils } from 'common/utils/token.utils';
-import { ETransactionModule } from 'common/constants/dex';
+import { EOrderSide, ETransactionModule } from 'common/constants/dex';
 
 const { dexes } = raidenxConfig();
 
@@ -30,6 +30,7 @@ interface IBuyParams {
   tokenOut: TCoinMetadata;
   orderId: string;
   isBuyBySuiToken: boolean;
+  side: EOrderSide;
 }
 
 interface ISellParams {
@@ -42,6 +43,7 @@ interface ISellParams {
   tokenOut: TCoinMetadata;
   orderId?: string;
   coinObjs: (CoinStruct & { owner: string })[];
+  side: EOrderSide;
 }
 
 export class SuiAiDexUtils extends BaseDexUtils implements IDexUtils {
@@ -58,6 +60,7 @@ export class SuiAiDexUtils extends BaseDexUtils implements IDexUtils {
       tokenOut: params.tokenOut,
       orderId: params.orderId,
       isBuyBySuiToken: TokenUtils.isSuiToken(params.tokenIn.address),
+      side: EOrderSide.BUY,
     };
   }
 
@@ -67,14 +70,15 @@ export class SuiAiDexUtils extends BaseDexUtils implements IDexUtils {
 
     return {
       walletAddress: params.walletAddress,
-      exactAmountIn: exactAmountIn,
+      exactAmountIn,
       minAmountOut: 0,
-      tokenIn: params.tokenIn,
       gasBasePrice: await SuiClientUtils.getReferenceGasPrice(),
       poolObjectId: params.poolId,
-      orderId: params.orderId,
+      tokenIn: params.tokenIn,
       tokenOut: params.tokenOut,
+      orderId: params.orderId,
       coinObjs,
+      side: EOrderSide.SELL,
     };
   }
 
@@ -90,6 +94,7 @@ export class SuiAiDexUtils extends BaseDexUtils implements IDexUtils {
     const { amountOut } = SuiClientUtils.extractTokenAmountByTxModule(simulateResponse, {
       txModule: ETransactionModule.Suiai,
       isBuyBySuiToken: simulateParams.isBuyBySuiToken,
+      side: EOrderSide.BUY,
     });
 
     const minAmountOut = new BigNumber(amountOut)
@@ -106,12 +111,40 @@ export class SuiAiDexUtils extends BaseDexUtils implements IDexUtils {
       tokenOut: params.tokenOut,
       orderId: params.orderId,
       isBuyBySuiToken: simulateParams.isBuyBySuiToken,
+      side: EOrderSide.BUY,
     };
   }
 
   async buildSellParams(params: TSwapParams): Promise<any> {
-    console.log(params);
-    throw new Error('Method not implemented.');
+    const simulateParams = await this.buildSimulateSellParams(params);
+    const simulateTx = await this.buildSellTransaction(simulateParams);
+    const simulateResponse = await suiClient.dryRunTransactionBlock({
+      transactionBlock: await simulateTx.build({
+        client: suiClient,
+      }),
+    });
+
+    const { amountOut } = SuiClientUtils.extractTokenAmountByTxModule(simulateResponse, {
+      txModule: ETransactionModule.Suiai,
+      side: EOrderSide.SELL,
+    });
+
+    const minAmountOut = new BigNumber(amountOut)
+      .multipliedBy(1 - params.slippage / 100)
+      .integerValue(BigNumber.ROUND_FLOOR);
+
+    return {
+      walletAddress: params.walletAddress,
+      exactAmountIn: simulateParams.exactAmountIn,
+      minAmountOut,
+      tokenIn: params.tokenIn,
+      gasBasePrice: await SuiClientUtils.getReferenceGasPrice(),
+      coinObjs: simulateParams.coinObjs,
+      poolObjectId: params.poolId,
+      tokenOut: params.tokenOut,
+      orderId: params.orderId,
+      side: EOrderSide.SELL,
+    };
   }
 
   async buildBuyBySuiToken(params: {
@@ -221,11 +254,6 @@ export class SuiAiDexUtils extends BaseDexUtils implements IDexUtils {
         ],
       });
     } else {
-      console.log('buy_exact_in_v2');
-      if (!NumericUtils.isEqual(TokenUtils.weiToDecimal(exactAmountIn.toString(), tokenIn.decimals), 1)) {
-        console.log('exactAmountIn: ', exactAmountIn.toString());
-        throw new Error('test');
-      }
       tx.moveCall({
         target: `${dexes.suiaifun.package}::${dexes.suiaifun.module}::buy_exact_in_v2`,
         typeArguments: [tokenOut.address],
@@ -241,15 +269,7 @@ export class SuiAiDexUtils extends BaseDexUtils implements IDexUtils {
     return tx;
   }
 
-  async buildSellTransaction(params: {
-    walletAddress: string;
-    exactAmountIn: BigNumber;
-    tokenIn: TCoinMetadata;
-    gasBasePrice: bigint;
-    coinObjs: (CoinStruct & { owner: string })[];
-    poolObjectId: string;
-    tokenOut?: TCoinMetadata;
-  }) {
+  async buildSellTransaction(params: ISellParams) {
     const {
       walletAddress,
       exactAmountIn,

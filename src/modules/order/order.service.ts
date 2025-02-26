@@ -111,7 +111,6 @@ export class OrderService {
       orderId: uniqueId.toString(),
     });
 
-    console.log('txBuyParams.exactAmountIn: ', txBuyParams.exactAmountIn.toString());
     const txBuy = await dexInstance.buildBuyTransaction(txBuyParams);
 
     const txData = await txBuy.toJSON();
