@@ -21,6 +21,7 @@ import { SocketEmitterService } from 'modules/socket/socket-emitter.service';
 import { SocketEvent } from 'modules/socket/socket.constant';
 import { TxService } from 'modules/tx/tx.service';
 import { UserService } from 'modules/user/user.service';
+import { SUI_ADDRESS, SUI_TOKEN_METADATA } from 'common/constants/address';
 
 @Injectable()
 export class OrderService {
@@ -78,12 +79,18 @@ export class OrderService {
       throw new NotFoundException('Pool not found');
     }
 
-    const tokenIn: TCoinMetadata = {
-      address: poolInfo.tokenQuote.address,
-      decimals: poolInfo.tokenQuote.decimals,
-      name: poolInfo.tokenQuote.name,
-      symbol: poolInfo.tokenQuote.symbol,
-    };
+    let tokenIn = {} as TCoinMetadata;
+
+    if (params.tokenIn && params.tokenIn === SUI_ADDRESS) {
+      tokenIn = SUI_TOKEN_METADATA;
+    } else {
+      tokenIn = {
+        address: poolInfo.tokenQuote.address,
+        decimals: poolInfo.tokenQuote.decimals,
+        name: poolInfo.tokenQuote.name,
+        symbol: poolInfo.tokenQuote.symbol,
+      };
+    }
 
     const tokenOut: TCoinMetadata = {
       address: poolInfo.tokenBase.address,

@@ -11,7 +11,7 @@ import BigNumber from 'bignumber.js';
 import retry from 'async-retry';
 import AppConfig from 'config/app.config';
 import { sleep } from 'common/utils/time.utils';
-import { ROUTER_SELL_EVENT } from 'common/constants/dex';
+import { EOrderSide, ETransactionModule, ROUTER_SELL_EVENT, ROUTER_SWAP_EVENT } from 'common/constants/dex';
 import { ROUTER_BUY_EVENT } from 'common/constants/dex';
 
 const { fullnodeSuiUrl } = AppConfig();
@@ -252,5 +252,80 @@ export class SuiClientUtils {
       amountOut: amountOut,
       amountIn: amountIn,
     };
+  }
+
+  /**
+   * Note:
+   * - If buy with SUAI -> buy
+   * - If buy with SUI -> convert SUI to SUAI -> buy token
+   * Extract token amount by transaction module
+   * @param simulateResponse - The response from the transaction simulation
+   * @param options - The options for the transaction module
+   * @returns The amount out and amount in
+   */
+  static extractTokenAmountByTxModule(
+    simulateResponse: DryRunTransactionBlockResponse,
+    options?: {
+      txModule?: ETransactionModule;
+      isBuyBySuiToken?: boolean;
+      side: EOrderSide;
+    },
+  ): {
+    amountOut: string;
+    amountIn: string;
+  } {
+    if (options?.txModule === ETransactionModule.Suiai && options?.isBuyBySuiToken) {
+      const buySellEventSuiToSuai = simulateResponse.events.find(
+        (event) =>
+          (event.type.includes(ROUTER_BUY_EVENT) || event.type.includes(ROUTER_SELL_EVENT)) &&
+          event.transactionModule == ETransactionModule.Cetus,
+      );
+
+      if (!buySellEventSuiToSuai) {
+        throw new Error('Swap event not found');
+      }
+      const amountIn = (buySellEventSuiToSuai.parsedJson as RouterSwapEvent).amount_in;
+
+      const swapEventSuaiToToken = simulateResponse.events.find(
+        (event) => event.type.includes(ROUTER_SWAP_EVENT) && event.transactionModule == ETransactionModule.Suiai,
+      );
+
+      if (!swapEventSuaiToToken) {
+        throw new Error('Swap event not found');
+      }
+      const amountOut = (swapEventSuaiToToken.parsedJson as any).coin_amount;
+
+      return {
+        amountOut,
+        amountIn,
+      };
+    }
+
+    // Buy with SUAI
+    if (options?.txModule === ETransactionModule.Suiai && !options?.isBuyBySuiToken) {
+      const swapEventSuaiToToken = simulateResponse.events.find((event) => event.type.includes(ROUTER_SWAP_EVENT));
+      const buyEventSuaiToToken = simulateResponse.events.find(
+        (event) => event.type.includes(ROUTER_BUY_EVENT) || event.type.includes(ROUTER_SELL_EVENT),
+      );
+
+      if (!swapEventSuaiToToken) {
+        throw new Error('Swap event not found');
+      }
+      if (!buyEventSuaiToToken) {
+        throw new Error('Buy event not found');
+      }
+      const amountIn = (buyEventSuaiToToken.parsedJson as RouterSwapEvent).amount_in;
+      const amountOut =
+        options?.side === EOrderSide.BUY
+          ? (swapEventSuaiToToken.parsedJson as any).coin_amount
+          : (swapEventSuaiToToken.parsedJson as any).sui_amount;
+
+      return {
+        amountOut,
+        amountIn,
+      };
+    }
+
+    return this.extractTokenAmount(simulateResponse);
   }
 }

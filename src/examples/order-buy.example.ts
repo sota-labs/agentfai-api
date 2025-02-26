@@ -12,6 +12,7 @@ import { plainToClass } from 'class-transformer';
 import { POOL_ID_EXAMPLE } from 'examples/config-test.example';
 import { TxService } from 'modules/tx/tx.service';
 import { TxDtoResponse } from 'modules/tx/dtos/get-all-txs.dto';
+import { SUI_ADDRESS } from 'common/constants/address';
 
 async function buy() {
   const app = await NestFactory.create(AppModule);
@@ -27,7 +28,8 @@ async function buy() {
     {
       walletAddress,
       poolId: poolObjectId,
-      amountIn: '0.0001',
+      // tokenIn: SUI_ADDRESS,
+      amountIn: '1',
       userId,
       slippage: 40,
     },

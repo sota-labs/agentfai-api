@@ -5,9 +5,12 @@ import { BaseDexUtils, IDexUtils } from 'common/utils/dexes/base.dex.utils';
 import { TCoinMetadata } from 'common/types/coin.type';
 import raidenxConfig from 'config/raidenx.config';
 import { SUI_ADDRESS, SUI_TOKEN_ADDRESS_SHORT } from 'common/constants/address';
-import { SuiClientUtils } from 'common/utils/onchain/sui-client';
+import { suiClient, SuiClientUtils } from 'common/utils/onchain/sui-client';
 import { SUI_TOKEN_METADATA } from 'common/constants/common';
 import { TSwapParams } from 'common/types/dex.type';
+import { NumericUtils } from 'common/utils/numeric.utils';
+import { TokenUtils } from 'common/utils/token.utils';
+import { EOrderSide, ETransactionModule } from 'common/constants/dex';
 
 const { dexes } = raidenxConfig();
 
@@ -17,15 +20,131 @@ const SHARE_OBJECT_CONFIG_CETUS = '0xdaa46292632c3c4d8f31f23ea0f9b36a28ff3677e96
 const POOL_SUIAI_SUI_OBJECT_ID = '0x7852612f5bf73613021f17353985fc186b3b224139c6a2576239132ba5a33b66';
 const SHARE_OBJECT_CONFIG_SUIAI = '0xd9b810f0d1f4c024dd7190bac834de764cb09054246f86981cb63d36ae51bf5c';
 
+interface IBuyParams {
+  walletAddress: string;
+  exactAmountIn: BigNumber | string | number;
+  minAmountOut: BigNumber | string | number;
+  gasBasePrice: bigint;
+  poolObjectId: string;
+  tokenIn: TCoinMetadata;
+  tokenOut: TCoinMetadata;
+  orderId: string;
+  isBuyBySuiToken: boolean;
+  side: EOrderSide;
+}
+
+interface ISellParams {
+  walletAddress: string;
+  exactAmountIn: BigNumber | string | number;
+  minAmountOut: BigNumber | string | number;
+  gasBasePrice: bigint;
+  poolObjectId: string;
+  tokenIn?: TCoinMetadata;
+  tokenOut: TCoinMetadata;
+  orderId?: string;
+  coinObjs: (CoinStruct & { owner: string })[];
+  side: EOrderSide;
+}
+
 export class SuiAiDexUtils extends BaseDexUtils implements IDexUtils {
-  async buildBuyParams(params: TSwapParams): Promise<any> {
-    console.log(params);
-    throw new Error('Method not implemented.');
+  async buildSimulateBuyParams(params: TSwapParams): Promise<IBuyParams> {
+    const exactAmountIn = NumericUtils.exactAmountIn(params.amountIn, params.tokenIn.decimals);
+
+    return {
+      walletAddress: params.walletAddress,
+      exactAmountIn,
+      minAmountOut: 0,
+      gasBasePrice: await SuiClientUtils.getReferenceGasPrice(),
+      poolObjectId: params.poolId,
+      tokenIn: params.tokenIn,
+      tokenOut: params.tokenOut,
+      orderId: params.orderId,
+      isBuyBySuiToken: TokenUtils.isSuiToken(params.tokenIn.address),
+      side: EOrderSide.BUY,
+    };
+  }
+
+  async buildSimulateSellParams(params: TSwapParams): Promise<ISellParams> {
+    const exactAmountIn = NumericUtils.exactAmountIn(params.amountIn, params.tokenIn.decimals);
+    const [coinObjs] = await SuiClientUtils.getOwnerCoinOnchain(params.walletAddress, params.tokenIn.address);
+
+    return {
+      walletAddress: params.walletAddress,
+      exactAmountIn,
+      minAmountOut: 0,
+      gasBasePrice: await SuiClientUtils.getReferenceGasPrice(),
+      poolObjectId: params.poolId,
+      tokenIn: params.tokenIn,
+      tokenOut: params.tokenOut,
+      orderId: params.orderId,
+      coinObjs,
+      side: EOrderSide.SELL,
+    };
+  }
+
+  async buildBuyParams(params: TSwapParams): Promise<IBuyParams> {
+    const simulateParams = await this.buildSimulateBuyParams(params);
+    const simulateTx = await this.buildBuyTransaction(simulateParams);
+    const simulateResponse = await suiClient.dryRunTransactionBlock({
+      transactionBlock: await simulateTx.build({
+        client: suiClient,
+      }),
+    });
+
+    const { amountOut } = SuiClientUtils.extractTokenAmountByTxModule(simulateResponse, {
+      txModule: ETransactionModule.Suiai,
+      isBuyBySuiToken: simulateParams.isBuyBySuiToken,
+      side: EOrderSide.BUY,
+    });
+
+    const minAmountOut = new BigNumber(amountOut)
+      .multipliedBy(1 - params.slippage / 100)
+      .integerValue(BigNumber.ROUND_FLOOR);
+
+    return {
+      walletAddress: params.walletAddress,
+      exactAmountIn: simulateParams.exactAmountIn,
+      minAmountOut: minAmountOut,
+      gasBasePrice: await SuiClientUtils.getReferenceGasPrice(),
+      poolObjectId: params.poolId,
+      tokenIn: params.tokenIn,
+      tokenOut: params.tokenOut,
+      orderId: params.orderId,
+      isBuyBySuiToken: simulateParams.isBuyBySuiToken,
+      side: EOrderSide.BUY,
+    };
   }
 
   async buildSellParams(params: TSwapParams): Promise<any> {
-    console.log(params);
-    throw new Error('Method not implemented.');
+    const simulateParams = await this.buildSimulateSellParams(params);
+    const simulateTx = await this.buildSellTransaction(simulateParams);
+    const simulateResponse = await suiClient.dryRunTransactionBlock({
+      transactionBlock: await simulateTx.build({
+        client: suiClient,
+      }),
+    });
+
+    const { amountOut } = SuiClientUtils.extractTokenAmountByTxModule(simulateResponse, {
+      txModule: ETransactionModule.Suiai,
+      side: EOrderSide.SELL,
+    });
+
+    const minAmountOut = new BigNumber(amountOut)
+      .multipliedBy(1 - params.slippage / 100)
+      .integerValue(BigNumber.ROUND_FLOOR);
+
+    return {
+      walletAddress: params.walletAddress,
+      exactAmountIn: simulateParams.exactAmountIn,
+      minAmountOut,
+      tokenIn: params.tokenIn,
+      gasBasePrice: await SuiClientUtils.getReferenceGasPrice(),
+      coinObjs: simulateParams.coinObjs,
+      poolObjectId: params.poolId,
+      tokenOut: params.tokenOut,
+      orderId: params.orderId,
+      side: EOrderSide.SELL,
+    };
   }
 
   async buildBuyBySuiToken(params: {
@@ -35,8 +154,9 @@ export class SuiAiDexUtils extends BaseDexUtils implements IDexUtils {
     gasBasePrice: bigint;
     poolObjectId: string;
     tokenIn: TCoinMetadata;
+    orderId?: string;
   }) {
-    const { walletAddress, exactAmountIn, tokenOut, gasBasePrice, poolObjectId, tokenIn } = params;
+    const { walletAddress, exactAmountIn, tokenOut, gasBasePrice, poolObjectId, tokenIn, orderId = 'abc' } = params;
     const tx = new Transaction();
     tx.setGasBudget(10000000);
     tx.setSender(walletAddress);
@@ -54,7 +174,7 @@ export class SuiAiDexUtils extends BaseDexUtils implements IDexUtils {
         tx.pure.u64(exactAmountIn.toString()),
         tx.pure.u64(0),
         tx.object('0x6'),
-        tx.pure.string('abc'),
+        tx.pure.string(orderId),
       ],
     });
 
@@ -73,16 +193,9 @@ export class SuiAiDexUtils extends BaseDexUtils implements IDexUtils {
     return tx;
   }
 
-  async buildBuyTransaction(params: {
-    walletAddress: string;
-    exactAmountIn: BigNumber | string | number;
-    tokenOut: TCoinMetadata;
-    gasBasePrice: bigint;
-    poolObjectId: string;
-    tokenIn: TCoinMetadata;
-    isBuyBySuiToken: boolean;
-  }) {
-    const { walletAddress, exactAmountIn, tokenOut, gasBasePrice, poolObjectId, tokenIn, isBuyBySuiToken } = params;
+  async buildBuyTransaction(params: IBuyParams) {
+    const { walletAddress, exactAmountIn, tokenOut, gasBasePrice, poolObjectId, tokenIn, orderId, isBuyBySuiToken } =
+      params;
     if (isBuyBySuiToken) {
       return await this.buildBuyBySuiToken({
         walletAddress,
@@ -91,6 +204,7 @@ export class SuiAiDexUtils extends BaseDexUtils implements IDexUtils {
         gasBasePrice,
         poolObjectId,
         tokenIn,
+        orderId,
       });
     }
 
@@ -102,7 +216,7 @@ export class SuiAiDexUtils extends BaseDexUtils implements IDexUtils {
     let coinTokenIn = null;
 
     let isPairWithSui = false;
-    if (tokenIn.address === SUI_TOKEN_ADDRESS_SHORT || tokenIn.address === SUI_ADDRESS) {
+    if (TokenUtils.isSuiToken(tokenIn.address)) {
       const [coin] = tx.splitCoins(tx.gas, [tx.pure.u64(exactAmountIn.toString())]);
       coinTokenIn = coin;
       isPairWithSui = true;
@@ -114,7 +228,16 @@ export class SuiAiDexUtils extends BaseDexUtils implements IDexUtils {
           tokenInObjects.slice(1).map((coin) => coin.coinObjectId),
         );
       }
-      coinTokenIn = tx.object(tokenInObjects[0].coinObjectId);
+
+      const totalAmount = tokenInObjects.reduce((sum, coin) => sum.plus(coin.balance), new BigNumber(0));
+      const amountInBigInt = new BigNumber(exactAmountIn.toString());
+
+      if (NumericUtils.isLt(totalAmount, amountInBigInt)) {
+        throw new Error(`Insufficient balance. Required: ${exactAmountIn}, Available: ${totalAmount}`);
+      }
+
+      const [splitCoin] = tx.splitCoins(tokenInObjects[0].coinObjectId, [tx.pure.u64(exactAmountIn.toString())]);
+      coinTokenIn = splitCoin;
     }
 
     if (isPairWithSui) {
@@ -127,7 +250,7 @@ export class SuiAiDexUtils extends BaseDexUtils implements IDexUtils {
           coinTokenIn,
           tx.pure.u64(exactAmountIn.toString()),
           tx.pure.u64(0),
-          tx.pure.string('abc'),
+          tx.pure.string(params.orderId || 'abc'),
         ],
       });
     } else {
@@ -138,24 +261,15 @@ export class SuiAiDexUtils extends BaseDexUtils implements IDexUtils {
           tx.object(dexes.suiaifun.configObjectId),
           tx.object(poolObjectId),
           coinTokenIn,
-          tx.pure.u64(exactAmountIn.toString()),
-          tx.pure.u64(0),
-          tx.pure.string('abc'),
+          tx.pure.u64('0'),
+          tx.pure.string(params.orderId || 'abc'),
         ],
       });
     }
     return tx;
   }
 
-  async buildSellTransaction(params: {
-    walletAddress: string;
-    exactAmountIn: BigNumber;
-    tokenIn: TCoinMetadata;
-    gasBasePrice: bigint;
-    coinObjs: (CoinStruct & { owner: string })[];
-    poolObjectId: string;
-    tokenOut?: TCoinMetadata;
-  }) {
+  async buildSellTransaction(params: ISellParams) {
     const {
       walletAddress,
       exactAmountIn,
